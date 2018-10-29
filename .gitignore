@@ -33,3 +33,5 @@ build
 /crypto-config
 
 /client-node/hfc-*
+chaincode/java/fabric-chaincode-example-gradle/
+.vscode/settings.json
