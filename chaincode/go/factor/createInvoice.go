@@ -21,18 +21,18 @@ type ChainCodeFunction func(shim.ChaincodeStubInterface, []string) peer.Response
 //ChainCodeFunctions is a map between name of the function and actual implementation
 var ChainCodeFunctions = make(map[string]ChainCodeFunction)
 
-//OrdersTable doc
-// var OrdersTable string
+//Organisation -
+type Organisation struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
 
 //Contract doc
 type Contract struct {
-	Buyer          string `json:"buyer,omitempty"`
-	buyerIdentity  string
-	Seller         string `json:"seller,omitempty"`
-	sellerIdentity string
-	Factor         string `json:"factor,omitempty"`
-	factorIdentity string
-	ID             string `json:"id"`
+	Buyer  Organisation `json:"buyer"`
+	Seller Organisation `json:"seller"`
+	Factor Organisation `json:"factor"`
+	ID     string       `json:"id"`
 }
 
 // Invoice is a commercial document issued by a seller to a buyer, relating to a sale transaction and indicating the products, quantities, and agreed prices for products or services the seller had provided the buyer. During factoring process Invoice is being created *after* ReceivalAdvice, because some of commodities could have been lost during transportation , and data from the Buyer are considered more trusfull. Seller or Factor are able to submit an Invoice only if the corresponding Receival Receipt had already been uploaded. The responsibility of submitter is checked against Contract with it's public key
@@ -66,18 +66,25 @@ type InvoiceBatch struct {
 
 // Document is either Invoice or ReceiptConfirmation
 type Document struct {
-	ID           string  `json:"id,omitempty"`
-	OrderID      string  `json:"orderId"`
-	Type         string  `json:"type"`
-	ContractID   string  `json:"contractID"`
-	Hash         string  `json:"hash"`
-	ShippingDate string  `json:"shippingDate"`
-	TotalGross   float32 `json:"totalGross"`
-	TotalNet     float32 `json:"totalNet,omitempty"`
-	Buyer        string  `json:"buyer,omitempty"`
-	Seller       string  `json:"seller,omitempty"`
-	Factor       string  `json:"factor,omitempty"`
-	DocumentType string  `json:"documentType,omitempty"`
+	ID           string      `json:"id,omitempty"`
+	OrderID      string      `json:"orderId"`
+	ContractID   string      `json:"contractID"`
+	Hash         string      `json:"hash"`
+	ShippingDate string      `json:"shippingDate"`
+	TotalGross   float32     `json:"totalGross"`
+	TotalNet     float32     `json:"totalNet,omitempty"`
+	Buyer        string      `json:"buyer,omitempty"`
+	Seller       string      `json:"seller,omitempty"`
+	Factor       string      `json:"factor,omitempty"`
+	DocumentType string      `json:"documentType,omitempty"`
+	Commodities  []Commodity `json:"commodities"`
+}
+//Commodity doc
+type Commodity struct {
+	ID       string  `json:"id,omitempty"`
+	Name     string  `json:"name"`
+	Quantity float32 `json:"quantity"`
+	Cost     float32 `json:"cost"`
 }
 
 //Documents doc
@@ -104,6 +111,7 @@ func (t *InvoiceDataChainCode) Init(stub shim.ChaincodeStubInterface) peer.Respo
 	ChainCodeFunctions["getOrder"] = getOrder
 	ChainCodeFunctions["createContract"] = createContract
 	ChainCodeFunctions["listContracts"] = listContracts
+	ChainCodeFunctions["listOrdersByContract"] = listOrdersByContract
 	ChainCodeFunctions["getContract"] = getContract
 
 	return shim.Success(nil)
@@ -184,6 +192,23 @@ func listOrders(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	return shim.Success(buffer.Bytes())
 }
 
+func listOrdersByContract(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	// resultsIterator, err := queryTable(stub, OrdersTable)
+	resultsIterator, err := stub.GetStateByPartialCompositeKey("OrdersCompositeKey", []string{args[0]})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer resultsIterator.Close()
+
+	buffer, err := formatAsJson(resultsIterator)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	// creator, err := stub.GetCreator()
+
+	return shim.Success(buffer.Bytes())
+}
+
 func updateMultipleOrders(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	documentsBytes := []byte(args[0])
 	documents := &Documents{}
@@ -194,15 +219,9 @@ func updateMultipleOrders(stub shim.ChaincodeStubInterface, args []string) peer.
 		return shim.Error(err.Error())
 	}
 	for _, document := range documents.Documents {
-		updatedOrderBytes, orderID, err := updateOrder(stub, document)
+		err := updateOrder(stub, document)
 		if err != nil {
-			logger.Errorf("Error : %v", err)
-			return shim.Error(err.Error())
-		}
-		err = tablePutState(stub, OrdersTable, orderID, updatedOrderBytes)
-		if err != nil {
-			logger.Errorf("Error while saving order: %s", orderID)
-			logger.Errorf("Error : %v", err)
+			logger.Errorf("Error wile processing Order %s : %v", document.OrderID, err)
 			return shim.Error(err.Error())
 		}
 	}
@@ -217,20 +236,15 @@ func updateSingleOrder(stub shim.ChaincodeStubInterface, args []string) peer.Res
 		logger.Errorf("Error : %v", err)
 		return shim.Error(err.Error())
 	}
-	updatedOrderBytes, orderID, err := updateOrder(stub, *document)
+	err = updateOrder(stub, *document)
 	if err != nil {
-		logger.Errorf("Error : %v", err)
+		logger.Errorf("Error wile processing Order %s : %v", document.OrderID, err)
 		return shim.Error(err.Error())
 	}
-	err = tablePutState(stub, OrdersTable, orderID, updatedOrderBytes)
-	if err != nil {
-		logger.Errorf("Error while saving order: %s", orderID)
-		logger.Errorf("Error : %v", err)
-		return shim.Error(err.Error())
-	}
+
 	return shim.Success(nil)
 }
-func updateOrder(stub shim.ChaincodeStubInterface, document Document) ([]byte, string, error) {
+func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 
 	updatedOrder := Order{}
 	updatedOrder.Documents = make(map[string]Document)
@@ -244,27 +258,32 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) ([]byte, s
 	if err != nil {
 		logger.Errorf("Error while querying contract: %s", contractID)
 		logger.Errorf("Error : %v", err)
-		return nil, "", err
+		return err
 	}
 	if contractBytes == nil {
 		logger.Errorf("Contract not found: %s", contractID)
-		return nil, "", errors.New("Contract not found: " + contractID)
+		return errors.New("Contract not found: " + contractID)
 	}
 	contract := &Contract{}
 	err = json.Unmarshal(contractBytes, contract)
 	if err != nil {
 		logger.Errorf("Error while unmarshalling contract: %s", contractID)
 		logger.Errorf("Error : %v", err)
-		return nil, "", err
+		return err
 	}
 
 	//TODO: add assertion for document type corresponding to roles in Contract
 	// if field is empty - override it  with default responsibility from contract
-	orderQueryResultBytes, err := queryTableKey(stub, OrdersTable, orderID)
+	primaryKey, err := stub.CreateCompositeKey("OrdersCompositeKey", []string{contractID, orderID})
+	if err != nil {
+		return err
+	}
+	// orderQueryResultBytes, err := queryTableKey(stub, OrdersTable, orderID)
+	orderQueryResultBytes, err := stub.GetState(primaryKey)
 	if err != nil {
 		logger.Errorf("Error while querying order: %s", orderID)
 		logger.Errorf("Error : %v", err)
-		return nil, "", err
+		return err
 	}
 
 	//If order was found, unmarshal it, check if contractId is the same and clone it to updatedOrder
@@ -274,44 +293,60 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) ([]byte, s
 		if err != nil {
 			logger.Errorf("Error while Unmarshalling order: %s", orderID)
 			logger.Errorf("Error : %v", err)
-			return nil, "", err
+			return err
 		}
 		if order.ContractID != document.ContractID {
-			return nil, "", errors.New("order.ContractID = " + order.ContractID + ", document.ContractID = " + document.ContractID)
+			return errors.New("order.ContractID = " + order.ContractID + ", document.ContractID = " + document.ContractID)
 		}
 		updatedOrder = *order
 	} else {
 		//if order is new assign Id from document
 		updatedOrder.ID = orderID
+		updatedOrder.ContractID = contractID
 	}
 	updatedOrder.StatusLog = append(updatedOrder.StatusLog, documentType)
 	updatedOrder.Documents[documentType] = document
+
+	// if err != nil {
+	// 	logger.Errorf("Error while marshalling order: %s", orderID)
+	// 	logger.Errorf("Error : %v", err)
+	// 	return nil, "", err
+	// }
 	updatedOrderBytes, err = json.Marshal(updatedOrder)
 	if err != nil {
-		logger.Errorf("Error while marshalling order: %s", orderID)
-		logger.Errorf("Error : %v", err)
-		return nil, "", err
+		return err
 	}
 
-	return updatedOrderBytes, orderID, nil
+	// err = tablePutState(stub, OrdersTable, orderID, updatedOrderBytes)
+	// 	if err != nil {
+	// 		logger.Errorf("Error while saving order: %s", orderID)
+	// 		logger.Errorf("Error : %v", err)
+	// 		return nil, "", err
+	// 	}
+
+	// primaryKey, err = stub.CreateCompositeKey("OrdersCompositeKey", []string{contractID, orderID})
+	// if err != nil {
+	// 	return err
+	// }
+	if err = stub.PutState(primaryKey, updatedOrderBytes); err != nil {
+		return err
+	}
+	// if err != nil {
+	// 	return err
+	// }
+	// return ccAPI.PutState(primaryKey, data)
+
+	return nil
 }
 
 func createContract(stub shim.ChaincodeStubInterface, args []string) peer.Response {
-	var contract = Contract{
-		args[1],
-		"",
-		args[2],
-		"",
-		args[3],
-		"",
-		args[0],
-	}
-	contractValueBytes, err := json.Marshal(contract)
-	if err != nil {
+	var contract = &Contract{}
+	contractValueBytes := []byte(args[0])
+	if err := json.Unmarshal(contractValueBytes, contract); err != nil {
+		logger.Errorf("error while unmarshalling contract: %v", err)
 		return shim.Error(err.Error())
 	}
-	err = tablePutState(stub, ContractsTable, args[0], contractValueBytes)
-	if err != nil {
+	if err := tablePutState(stub, ContractsTable, contract.ID, contractValueBytes); err != nil {
 		return shim.Error(err.Error())
 	}
 
@@ -319,7 +354,7 @@ func createContract(stub shim.ChaincodeStubInterface, args []string) peer.Respon
 }
 func listContracts(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 
-	resultsIterator, err := queryTable(stub, Contracts)
+	resultsIterator, err := queryTable(stub, ContractsTable)
 	if err != nil {
 		return shim.Error(err.Error())
 	}

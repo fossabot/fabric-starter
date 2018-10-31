@@ -171,6 +171,17 @@ services:
 #      - ${WWW_PORT:-8081}:80
     volumes:
       - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/msp:/usr/share/nginx/html/msp
+  
+  backend:
+    image: openjdk:jre-alpine
+    volumes: 
+      - /Users/vladimirpopov/Documents/lab/factoring/backend/target/scala-2.12/:/opt/backend #CHANGE ME
+    environment:
+      - API_HOST=api.${ORG:-org1}.${DOMAIN:-example.com}
+      - API_PORT=3000
+    command: java -jar /opt/backend/factoring.jar
+    ports: 
+      - 5500:5500
 
 networks:
   default:
