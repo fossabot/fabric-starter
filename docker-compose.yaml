@@ -88,7 +88,7 @@ services:
 #    - CORE_LOGGING_LEVEL=DEBUG
     - CORE_CHAINCODE_LOGGING_LEVEL=DEBUG
     - CORE_CHAINCODE_LOGGING_SHIM=debug
-    - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    - CORE_PEER_GOSSIP_USELEADERELECTION=false
     - CORE_PEER_GOSSIP_ORGLEADER=false
     - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.${ORG:-org1}.${DOMAIN:-example.com}:7051
     - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.${ORG:-org1}.${DOMAIN:-example.com}:7051
@@ -133,7 +133,6 @@ services:
     volumes:
     - /var/run/:/host/var/run/
     - ${GOPATH}:/opt/gopath
-    # - ./chaincode/go:/opt/gopath/src/chaincode
     - ./chaincode/go:/opt/gopath/src/chaincode
     - ./crypto-config:/etc/hyperledger/crypto-config
     - ${FABRIC_STARTER_HOME:-.}/templates:/etc/hyperledger/templates
