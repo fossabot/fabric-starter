@@ -133,7 +133,6 @@ services:
     volumes:
     - /var/run/:/host/var/run/
     - ${GOPATH}:/opt/gopath
-    # - ./chaincode/go:/opt/gopath/src/chaincode
     - ./chaincode/go:/opt/gopath/src/chaincode
     - ./crypto-config:/etc/hyperledger/crypto-config
     - ${FABRIC_STARTER_HOME:-.}/templates:/etc/hyperledger/templates
