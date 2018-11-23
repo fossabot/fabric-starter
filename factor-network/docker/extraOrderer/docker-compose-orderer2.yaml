@@ -1,0 +1,67 @@
+# 
+# Copyright . All Rights Reserved.
+# 
+
+version: '3.7'
+
+volumes:
+  orderer:
+
+services:
+
+  orderer:
+    container_name: orderer2.${DOMAIN:-example.com}
+    image: hyperledger/fabric-orderer:${FABRIC_VERSION:-latest}
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=debug
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.pb
+      - ORDERER_GENERAL_LOCALMSPID=Orderer
+      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/crypto/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/crypto/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/crypto/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/crypto/orderer/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderers
+    command: orderer
+    volumes:
+      - ./crypto-config/configtx:/etc/hyperledger/configtx
+      - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/orderers/orderer.${DOMAIN:-example.com}/:/etc/hyperledger/crypto/orderer
+      - orderer:/var/hyperledger/production/orderer
+
+  cli.orderer:
+    container_name: cli.${DOMAIN:-example.com}
+#    build: ./fabric-tools-extended
+    image: olegabu/fabric-tools-extended
+    tty: true
+    environment:
+    - DOMAIN=${DOMAIN:-example.com}
+    - ORDERER_GENERAL_LOGLEVEL=debug
+    - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+    - ORDERER_GENERAL_GENESISMETHOD=file
+    - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.pb
+    - ORDERER_GENERAL_LOCALMSPID=Orderer
+    - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/crypto/orderer/msp
+    - ORDERER_GENERAL_TLS_ENABLED=true
+    - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/crypto/orderer/tls/server.key
+    - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/crypto/orderer/tls/server.crt
+    - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/crypto/orderer/tls/ca.crt]
+    - CORE_PEER_LOCALMSPID=Orderer
+    - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/crypto/ordereradmin/msp
+    - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/crypto/orderer/tls/ca.crt
+    working_dir: /etc/hyperledger
+    volumes:
+    - ./crypto-config:/etc/hyperledger/crypto-config
+    - ./templates:/etc/hyperledger/templates
+    - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/orderers/orderer.${DOMAIN:-example.com}:/etc/hyperledger/crypto/orderer
+    - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/users/Admin@${DOMAIN:-example.com}:/etc/hyperledger/crypto/ordereradmin
+
+  # http serves certificates
+  www.orderer:
+    image: nginx
+    container_name: www2.${DOMAIN:-example.com}
+#    ports:
+#      - ${WWW_PORT:-8080}:80
+    volumes:
+      - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/msp:/usr/share/nginx/html/msp
