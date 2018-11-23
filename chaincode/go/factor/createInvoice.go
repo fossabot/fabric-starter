@@ -6,6 +6,7 @@ import (
 	"errors" // "strings"
 	"fmt"    // "bytes"
 
+	"github.com/hyperledger/fabric/core/chaincode/lib/cid"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/protos/peer"
 )
@@ -79,6 +80,7 @@ type Document struct {
 	DocumentType string      `json:"documentType,omitempty"`
 	Commodities  []Commodity `json:"commodities"`
 }
+
 //Commodity doc
 type Commodity struct {
 	ID       string  `json:"id,omitempty"`
@@ -105,14 +107,14 @@ type Order struct {
 //Init fills the map of fuctions and corresponding names
 func (t *InvoiceDataChainCode) Init(stub shim.ChaincodeStubInterface) peer.Response {
 
-	ChainCodeFunctions["updateSingleOrder"] = updateSingleOrder
-	ChainCodeFunctions["updateMultipleOrders"] = updateMultipleOrders
-	ChainCodeFunctions["listOrders"] = listOrders
-	ChainCodeFunctions["getOrder"] = getOrder
-	ChainCodeFunctions["createContract"] = createContract
-	ChainCodeFunctions["listContracts"] = listContracts
-	ChainCodeFunctions["listOrdersByContract"] = listOrdersByContract
-	ChainCodeFunctions["getContract"] = getContract
+	// ChainCodeFunctions["updateSingleOrder"] = updateSingleOrder
+	// ChainCodeFunctions["updateMultipleOrders"] = updateMultipleOrders
+	// ChainCodeFunctions["listOrders"] = listOrders
+	// ChainCodeFunctions["getOrder"] = getOrder
+	// ChainCodeFunctions["createContract"] = createContract
+	// ChainCodeFunctions["listContracts"] = listContracts
+	// ChainCodeFunctions["listOrdersByContract"] = listOrdersByContract
+	// ChainCodeFunctions["getContract"] = getContract
 
 	return shim.Success(nil)
 }
@@ -121,8 +123,8 @@ func (t *InvoiceDataChainCode) Init(stub shim.ChaincodeStubInterface) peer.Respo
 const (
 	receiptConfirmationDocType = "receiptConfirmation"
 	invoiceDocType             = "invoice"
-	OrdersTable                = "Orders_v3"
-	ContractsTable             = "Contracts"
+	OrdersTable                = "Orders_v4"
+	ContractsTable             = "Contracts_v4"
 )
 
 //Invoke --
@@ -274,6 +276,13 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 
 	//TODO: add assertion for document type corresponding to roles in Contract
 	// if field is empty - override it  with default responsibility from contract
+	creator, _ := cid.GetMSPID(stub)
+	if contract.Buyer.ID == creator {
+		documentType = receiptConfirmationDocType
+	} else {
+		documentType = invoiceDocType
+	}
+
 	primaryKey, err := stub.CreateCompositeKey("OrdersCompositeKey", []string{contractID, orderID})
 	if err != nil {
 		return err
@@ -342,6 +351,8 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 func createContract(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	var contract = &Contract{}
 	contractValueBytes := []byte(args[0])
+	mspID, _ := cid.GetMSPID(stub)
+	logger.Noticef("Got msp: %v", mspID)
 	if err := json.Unmarshal(contractValueBytes, contract); err != nil {
 		logger.Errorf("error while unmarshalling contract: %v", err)
 		return shim.Error(err.Error())
@@ -394,6 +405,15 @@ func getContract(stub shim.ChaincodeStubInterface, args []string) peer.Response 
 // }
 
 func main() {
+
+	ChainCodeFunctions["updateSingleOrder"] = updateSingleOrder
+	ChainCodeFunctions["updateMultipleOrders"] = updateMultipleOrders
+	ChainCodeFunctions["listOrders"] = listOrders
+	ChainCodeFunctions["getOrder"] = getOrder
+	ChainCodeFunctions["createContract"] = createContract
+	ChainCodeFunctions["listContracts"] = listContracts
+	ChainCodeFunctions["listOrdersByContract"] = listOrdersByContract
+	ChainCodeFunctions["getContract"] = getContract
 
 	if err := shim.Start(new(InvoiceDataChainCode)); err != nil {
 		fmt.Printf("Error starting Invoice chaincode: %s", err)

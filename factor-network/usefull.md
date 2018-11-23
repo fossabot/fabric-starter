@@ -109,7 +109,7 @@ docker-machine scp -r backend factoringdev-buyer:.
 export ORG="buyer"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
-export DOMAIN=factoring2.ru
+export DOMAIN=factoring.ru
 docker run -dit --name alpine --network fabric-overlay alpine
 ./generate-peer.sh
 docker-compose -f docker-compose.yaml -f multihost.yaml up -d

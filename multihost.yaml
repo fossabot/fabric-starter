@@ -34,7 +34,7 @@ services:
 
   cli.peer:
     volumes:
-    - ${GOPATH}:/opt/gopath
+    - ${WORK_DIR}/gopath:/opt/gopath
     - ${WORK_DIR-/home/docker}/chaincode/go:/opt/gopath/src/chaincode
     - ${WORK_DIR-/home/docker}/crypto-config:/etc/hyperledger/crypto-config
     - ${WORK_DIR-/home/docker}/templates:/etc/hyperledger/templates
