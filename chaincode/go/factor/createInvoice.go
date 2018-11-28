@@ -96,12 +96,13 @@ type Documents struct {
 
 //Order is the main structure, which describes the life-cycle of shipping, receiving and paying for commodities. Status is and aggregated value just for simplicity of using in front-end
 type Order struct {
-	ID         string              `json:"id"`
-	Buyer      string              `json:"buyer,omitempty"`
-	Seller     string              `json:"seller,omitempty"`
-	ContractID string              `json:"contractID"`
-	StatusLog  []string            `json:"status"`
-	Documents  map[string]Document `json:"documents"`
+	ID         string `json:"id"`
+	Buyer      string `json:"buyer,omitempty"`
+	Seller     string `json:"seller,omitempty"`
+	ContractID string `json:"contractID"`
+	// StatusLog  []string            `json:"status"`
+	StatusLog map[string]bool     `json:"status"`
+	Documents map[string]Document `json:"documents"`
 }
 
 //Init fills the map of fuctions and corresponding names
@@ -129,6 +130,7 @@ const (
 
 //Invoke --
 func (t *InvoiceDataChainCode) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
+
 	function, args := stub.GetFunctionAndParameters()
 	logger.Noticef("%v %v", function, args)
 	theFunc := ChainCodeFunctions[function]
@@ -246,8 +248,7 @@ func updateSingleOrder(stub shim.ChaincodeStubInterface, args []string) peer.Res
 
 	return shim.Success(nil)
 }
-func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
-
+func updatePrivateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 	updatedOrder := Order{}
 	updatedOrder.Documents = make(map[string]Document)
 	var updatedOrderBytes []byte
@@ -276,13 +277,88 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 
 	//TODO: add assertion for document type corresponding to roles in Contract
 	// if field is empty - override it  with default responsibility from contract
+	// primaryKey, err := stub.CreateCompositeKey("OrdersCompositeKey", []string{contractID, orderID})
+	primaryKey:= orderID
+	if err != nil {
+		return err
+	}
+	// orderQueryResultBytes, err := queryTableKey(stub, OrdersTable, orderID)
+	orderQueryResultBytes, err := stub.GetPrivateData("Orders",primaryKey)
+	if err != nil {
+		logger.Errorf("Error while querying order: %s", orderID)
+		logger.Errorf("Error : %v", err)
+		return err
+	}
+
+	//If order was found, unmarshal it, check if contractId is the same and clone it to updatedOrder
+	if orderQueryResultBytes != nil {
+		order := &Order{}
+		err := json.Unmarshal(orderQueryResultBytes, order)
+		if err != nil {
+			logger.Errorf("Error while Unmarshalling order: %s", orderID)
+			logger.Errorf("Error : %v", err)
+			return err
+		}
+		if order.ContractID != document.ContractID {
+			return errors.New("order.ContractID = " + order.ContractID + ", document.ContractID = " + document.ContractID)
+		}
+		updatedOrder = *order
+	} else {
+		//if order is new assign Id from document
+		updatedOrder.ID = orderID
+		updatedOrder.ContractID = contractID
+	}
+	if updatedOrder.StatusLog == nil {
+		updatedOrder.StatusLog = make(map[string]bool)
+	}
+	updatedOrder.StatusLog[documentType] = true
+
+	updatedOrder.Documents[documentType] = document
+	updatedOrderBytes, err = json.Marshal(updatedOrder)
+	if err != nil {
+		return err
+	}
+	if err = stub.PutPrivateData("Orders",primaryKey, updatedOrderBytes); err != nil {
+		return err
+	}
+
+	return nil
+}
+func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
+
+	updatedOrder := Order{}
+	updatedOrder.Documents = make(map[string]Document)
+	var updatedOrderBytes []byte
+	orderID := document.OrderID
+	documentType := document.DocumentType
+	
+	contractID := document.ContractID
+
+	//Query Contract to get buyer,seller, factor and check responsibilities
+	contractBytes, err := queryTableKey(stub, ContractsTable, contractID)
+	if err != nil {
+		logger.Errorf("Error while querying contract: %s", contractID)
+		logger.Errorf("Error : %v", err)
+		return err
+	}
+	if contractBytes == nil {
+		logger.Errorf("Contract not found: %s", contractID)
+		return errors.New("Contract not found: " + contractID)
+	}
+	contract := &Contract{}
+	err = json.Unmarshal(contractBytes, contract)
+	if err != nil {
+		logger.Errorf("Error while unmarshalling contract: %s", contractID)
+		logger.Errorf("Error : %v", err)
+		return err
+	}
 	creator, _ := cid.GetMSPID(stub)
 	if contract.Buyer.ID == creator {
 		documentType = receiptConfirmationDocType
-	} else {
-		documentType = invoiceDocType
 	}
 
+	//TODO: add assertion for document type corresponding to roles in Contract
+	// if field is empty - override it  with default responsibility from contract
 	primaryKey, err := stub.CreateCompositeKey("OrdersCompositeKey", []string{contractID, orderID})
 	if err != nil {
 		return err
@@ -313,7 +389,11 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 		updatedOrder.ID = orderID
 		updatedOrder.ContractID = contractID
 	}
-	updatedOrder.StatusLog = append(updatedOrder.StatusLog, documentType)
+	if updatedOrder.StatusLog == nil {
+		updatedOrder.StatusLog = make(map[string]bool)
+	}
+	updatedOrder.StatusLog[documentType] = true
+	//append(updatedOrder.StatusLog, documentType)
 	updatedOrder.Documents[documentType] = document
 
 	// if err != nil {
@@ -351,8 +431,6 @@ func updateOrder(stub shim.ChaincodeStubInterface, document Document) error {
 func createContract(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	var contract = &Contract{}
 	contractValueBytes := []byte(args[0])
-	mspID, _ := cid.GetMSPID(stub)
-	logger.Noticef("Got msp: %v", mspID)
 	if err := json.Unmarshal(contractValueBytes, contract); err != nil {
 		logger.Errorf("error while unmarshalling contract: %v", err)
 		return shim.Error(err.Error())
@@ -361,7 +439,7 @@ func createContract(stub shim.ChaincodeStubInterface, args []string) peer.Respon
 		return shim.Error(err.Error())
 	}
 
-	return shim.Success(nil)
+	return shim.Success([]byte(stub.GetTxID()))
 }
 func listContracts(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 

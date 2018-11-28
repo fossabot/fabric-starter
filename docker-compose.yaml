@@ -65,6 +65,7 @@ services:
     - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/crypto/peer/tls/server.key
     - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/crypto/peer/tls/server.crt
     - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/crypto/peer/tls/ca.crt
+    - CORE_CHAINCODE_JAVA_RUNTIME=apolubelov/fabric-scalaenv
 
     volumes:
     - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/peers/peer0.${ORG:-org1}.${DOMAIN:-example.com}/:/etc/hyperledger/crypto/peer
@@ -100,6 +101,7 @@ services:
     - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/crypto/peer/tls/server.key
     - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/crypto/peer/tls/server.crt
     - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/crypto/peer/tls/ca.crt
+    - CORE_CHAINCODE_JAVA_RUNTIME=apolubelov/fabric-scalaenv
     volumes:
     - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/peers/peer1.${ORG:-org1}.${DOMAIN:-example.com}/:/etc/hyperledger/crypto/peer
     - peer1:/var/hyperledger/production
@@ -134,6 +136,7 @@ services:
     - /var/run/:/host/var/run/
     - ${GOPATH}:/opt/gopath
     - ./chaincode/go:/opt/gopath/src/chaincode
+    - ./chaincode:/opt/chaincode
     - ./crypto-config:/etc/hyperledger/crypto-config
     - ${FABRIC_STARTER_HOME:-.}/templates:/etc/hyperledger/templates
     - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/users/Admin@${ORG:-org1}.${DOMAIN:-example.com}:/etc/hyperledger/crypto/peeradmin
@@ -177,7 +180,7 @@ services:
 #      - ${WWW_PORT:-8081}:80
     volumes:
       - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/msp:/usr/share/nginx/html/msp
-       
+
 networks:
   default:
     external:
