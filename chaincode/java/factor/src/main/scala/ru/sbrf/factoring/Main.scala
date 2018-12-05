@@ -1,7 +1,7 @@
 package ru.sbrf.factoring
 
 import com.github.apolubelov.fabric.contract._
-import com.github.apolubelov.fabric.contract.annotations.ContractOperation
+import com.github.apolubelov.fabric.contract.annotations.ContractInit
 import org.slf4j.{Logger, LoggerFactory}
 import ru.sbrf.factoring.assets.Organization
 
@@ -13,7 +13,10 @@ import ru.sbrf.factoring.assets.Organization
  * @author Alexey Polubelov
  */
 object Main extends ContractBase with App
-  with organization.Services {
+  with organization.Services
+  with contract.Services
+  with order.Services
+  with document.Services {
 
   // start SHIM chain code
   start(args)
@@ -30,15 +33,11 @@ object Main extends ContractBase with App
     .setLevel(ch.qos.logback.classic.Level.TRACE)
 
 
-  //    @ContractInit
-  //    def init(context: ContractContext, ac1: String, ac1Value: Int, ac2: String, ac2Value: Int): Unit = {
-  //        context.store.put(ac1, ac1Value)
-  //        context.store.put(ac2, ac2Value)
-  //        // bonus content:
-  //        putAsset(context, "a1", DummyAsset("a1", 1, 1.1))
-  //        putAsset(context, "a2", DummyAsset("a2", 2, 2.2))
-  //        putAsset(context, "a3", DummyAsset("a3", 3, 3.3))
-  //    }
+  @ContractInit
+  def init(context: ContractContext, factor: Organization, buyer: Organization): Unit = {
+        context.store.put(factor.id, factor)
+        context.store.put(buyer.id, buyer)
+  }
 
   //    @ContractOperation
   //    def invoke(context: ContractContext, from: String, to: String, x: Int): ContractResponse =

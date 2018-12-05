@@ -7,7 +7,7 @@ import ru.sbrf.factoring.assets.Contract
 trait Services {
   @ContractOperation
   def createContract(context: ContractContext, contract: Contract): ContractResponse = {
-    context.store.put(contract.id.getOrElse(""), contract)
+    context.store.put(contract.id, contract)
     Success()
   }
 

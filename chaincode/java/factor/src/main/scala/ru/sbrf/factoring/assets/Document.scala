@@ -1,14 +1,18 @@
 package ru.sbrf.factoring.assets
 
-case class Document(id: Option[String] = None,
-                    contractID: String,
+case class Document(id: String, // only for XMLs with rich content
+                    batchID: String, // "Номер реестра"
+                    shipmentStatus: String, // "Статус поставки"
+                    transactionDate: String, //Дата проводки
+                    contractID: String, //
+                    headerText: String,
+                    documentDate: String, //Дата документа
                     orderId: String,
-                    hash: String,
-                    shippingDate: String,
+                    shipmentCode: String,
                     totalGross: Double,
-                    totalNet: Option[Double] = None,
-                    buyer: Option[String] = None,
-                    seller: Option[String] = None,
-                    factor: Option[String] = None,
+                    totalNet: Double = 0,
+                    buyer: String,
+                    seller: String,
+                    factor: String,
                     documentType: String = "Invoice",
-                    commodities: List[Commodity])
+                    commodities: Array[Commodity])
