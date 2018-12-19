@@ -1,7 +1,8 @@
 cd /Users/vladimirpopov/Documents/lab/factoring/factor-portal
 git pull
+npm install
 npm run build
-cp -r build ~/Documents/lab/factoring/backend/src/main/resources/
+cp -r build ~/Documents/lab/factoring/backend/src/main/resources
 cd ~/Documents/lab/factoring/backend/
 sbt 'set test in assembly := {}' clean assembly
 cd ~/Blockchain/HLF/fabric-starter

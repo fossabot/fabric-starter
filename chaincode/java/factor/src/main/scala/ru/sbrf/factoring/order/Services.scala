@@ -1,10 +1,21 @@
 package ru.sbrf.factoring.order
 
+import java.time.Instant
+
 import com.github.apolubelov.fabric.contract.annotations.ContractOperation
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
+import org.slf4j.{Logger, LoggerFactory}
+import ru.sbrf.factoring.Config.PAGE_SIZE
 import ru.sbrf.factoring.assets.Order
 
 trait Services {
+
+  case class
+  OrdersQueryParams(unmatched: Boolean = false,
+                               from: Long,
+                               to: Long,
+                               page: Int)
+
   @ContractOperation
   def createOrder(context: ContractContext, order: Order): ContractResponse = {
     context.store.put(order.id, order)
@@ -24,6 +35,60 @@ trait Services {
       .map(_._2) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(orders)
+  }
+
+  //  @ContractOperation
+  //  def listOrdersWithParams(context: ContractContext, matched: String, from: String, to: String, page: String): ContractResponse = {
+  //
+  //
+  //    val pageSize = 20
+  //
+  //    val orders = context.store.list[Order]
+  //      .map(_._2) // take only values
+  //      .filter(o =>
+  //      matched.asInstanceOf[Boolean] == (o.confirmed && o.received)
+  //        && o.created.isAfter(Instant.ofEpochMilli(from.asInstanceOf[Long]))
+  //        && o.created.isBefore(Instant.ofEpochMilli(to.asInstanceOf[Long])))
+  //      .slice(pageSize * (page.asInstanceOf[Int] - 1),
+  //        pageSize * (page.asInstanceOf[Int] - 1) + pageSize)
+  //      .toArray // use Array, as GSON knows nothing about scala collections
+  //    Success(orders)
+  //  }
+
+  @ContractOperation
+  def listOrdersWithParams(context: ContractContext, queryParams: OrdersQueryParams): ContractResponse = {
+
+
+    def f(o: Order): Boolean = {
+      val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+      val matchFlagCondition = !queryParams.unmatched || (queryParams.unmatched && (o.confirmed != o.received))
+
+      val fromCondition = o.created.isAfter(Instant.ofEpochMilli(queryParams.from))
+
+      val toCondition = o.created.isBefore(Instant.ofEpochMilli(queryParams.to))
+
+      logger.info(s"created = ${o.created} ,to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
+      logger.info(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
+      matchFlagCondition && fromCondition && toCondition
+    }
+
+    val ordersFiltered = context.store.list[Order]
+      .map(_._2) // take only values
+      .filter(o =>
+      f(o)
+    )
+    val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    logger.info(s"Orders filtered size: ${ordersFiltered.size}")
+
+
+    val ordersSliced = ordersFiltered
+      .slice(PAGE_SIZE * (queryParams.page - 1),
+        PAGE_SIZE * (queryParams.page - 1) + PAGE_SIZE).toArray
+    // use Array, as GSON knows nothing about scala collections
+
+
+    Success(ordersSliced)
   }
 
   //  @ContractOperation

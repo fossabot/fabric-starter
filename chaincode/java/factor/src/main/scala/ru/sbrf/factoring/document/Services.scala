@@ -36,7 +36,7 @@ trait Services {
     val documentType = if (isReceiver) incomingDoc.documentType else Config.INVOICE
 
     logger.info(s"Got doc for OrderId: ${incomingDoc.orderId} with type: $documentType")
-    val doc = incomingDoc.copy(documentType = documentType)
+    val doc = incomingDoc.copy(documentType = documentType, created = context.lowLevelApi.getTxTimestamp)
     val received = documentType == Config.RECEIPT
     val confirmed = documentType == Config.INVOICE
 
@@ -46,10 +46,10 @@ trait Services {
       //we need to update the previously uploaded document
       val documents = doc +: order.documents.filterNot(_.documentType == documentType)
       //also we have to update order status
-      Order(order.id, documents, received || order.received, confirmed || order.confirmed)
+      Order(order.id, documents, received || order.received, confirmed || order.confirmed, order.created)
     } getOrElse {
       //New Order
-      Order(doc.orderId, Array(doc), received, confirmed)
+      Order(doc.orderId, Array(doc), received, confirmed, doc.created)
     }
   }
 

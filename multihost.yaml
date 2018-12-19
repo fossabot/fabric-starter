@@ -35,7 +35,8 @@ services:
   cli.peer:
     volumes:
     - ${WORK_DIR}/gopath:/opt/gopath
-    - ${WORK_DIR-/home/docker}/chaincode/go:/opt/gopath/src/chaincode
+    # - ${WORK_DIR-/home/docker}/chaincode/go:/opt/gopath/src/chaincode
+    - ${WORK_DIR-/home/docker}/chaincode/java:/opt/chaincode/java
     - ${WORK_DIR-/home/docker}/crypto-config:/etc/hyperledger/crypto-config
     - ${WORK_DIR-/home/docker}/templates:/etc/hyperledger/templates
     - ${WORK_DIR-/home/docker}/crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/users/Admin@${ORG:-org1}.${DOMAIN:-example.com}:/etc/hyperledger/crypto/peeradmin

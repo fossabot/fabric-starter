@@ -1,9 +1,11 @@
 package ru.sbrf.factoring
 
+import java.time.Instant
+
 import com.github.apolubelov.fabric.contract._
 import com.github.apolubelov.fabric.contract.annotations.ContractInit
 import org.slf4j.{Logger, LoggerFactory}
-import ru.sbrf.factoring.assets.Organization
+import ru.sbrf.factoring.assets.{Order, Organization}
 
 /*
  * This is just a version of
@@ -35,8 +37,17 @@ object Main extends ContractBase with App
 
   @ContractInit
   def init(context: ContractContext, factor: Organization, buyer: Organization): Unit = {
-        context.store.put(factor.id, factor)
-        context.store.put(buyer.id, buyer)
+
+    //update nulls 
+    val rows = context.store.list[Order]
+      .filter(row => row._2.created == null)
+
+    for (row <- rows) {
+      context.store.put(row._1, row._2.copy(created = Instant.now()))
+    }
+
+    context.store.put(factor.id, factor)
+    context.store.put(buyer.id, buyer)
   }
 
   //    @ContractOperation
