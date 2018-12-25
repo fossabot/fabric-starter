@@ -59,27 +59,25 @@ trait Services {
   def listOrdersWithParams(context: ContractContext, queryParams: OrdersQueryParams): ContractResponse = {
 
 
-    def f(o: Order): Boolean = {
+    def checkBoundaries(o: Order): Boolean = {
       val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
       val matchFlagCondition = !queryParams.unmatched || (queryParams.unmatched && (o.confirmed != o.received))
 
-      val fromCondition = o.created.isAfter(Instant.ofEpochMilli(queryParams.from))
+      val fromCondition = o.created > queryParams.from //.isAfter(Instant.ofEpochMilli(queryParams.from))
 
-      val toCondition = o.created.isBefore(Instant.ofEpochMilli(queryParams.to))
+      val toCondition = o.created  < queryParams.to//.isBefore(Instant.ofEpochMilli(queryParams.to))
 
-      logger.info(s"created = ${o.created} ,to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
-      logger.info(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
+      logger.trace(s"created = ${o.created} ,from =  ${queryParams.from}, to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
+      logger.trace(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
       matchFlagCondition && fromCondition && toCondition
     }
 
     val ordersFiltered = context.store.list[Order]
       .map(_._2) // take only values
-      .filter(o =>
-      f(o)
-    )
+      .filter(checkBoundaries)
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    logger.info(s"Orders filtered size: ${ordersFiltered.size}")
+    logger.trace(s"Orders filtered size: ${ordersFiltered.size}")
 
 
     val ordersSliced = ordersFiltered

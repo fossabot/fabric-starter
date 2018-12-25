@@ -1,7 +1,5 @@
 package ru.sbrf.factoring.assets
 
-import java.time.Instant
-
 case class Document(id: String, // only for XMLs with rich content
                     batchID: String, // "Номер реестра"
                     shipmentStatus: String, // "Статус поставки"
@@ -18,4 +16,4 @@ case class Document(id: String, // only for XMLs with rich content
                     factor: String,
                     documentType: String = "Invoice",
                     commodities: Array[Commodity],
-                    created: Instant)
+                    created: Long)

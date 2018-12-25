@@ -1,7 +1,5 @@
 package ru.sbrf.factoring.assets
 
-import java.time.Instant
-
 case class Order(id: String,
 //                 buyer: Organization,
 //                 seller: Organization,
@@ -9,4 +7,4 @@ case class Order(id: String,
                  documents: Array[Document],
                  received: Boolean = false,
                  confirmed: Boolean = false,
-                 created: Instant)
+                 created: Long)

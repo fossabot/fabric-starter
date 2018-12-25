@@ -27,18 +27,18 @@ trait Services {
     val buyer = context.store.list[Organization].filter(_._2.role == "Buyer")
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
     if (buyer.isEmpty) Error(s"Buyer organization was not found. Please create buyer organization for the current contract (channel) ")
-    logger.info(s"Found Buyer ${buyer.head._2.id} with mspId = ${buyer.head._2.mspId}")
-    logger.info(s"current transaction author: $txAuthor")
+    logger.trace(s"Found Buyer ${buyer.head._2.id} with mspId = ${buyer.head._2.mspId}")
+    logger.trace(s"current transaction author: $txAuthor")
     /*No one except buyer can submit a receipt*/
-    val isReceiver = txAuthor == buyer.head._2.mspId
+    val isBuyer = txAuthor == buyer.head._2.mspId
 
     /*Buyer can post both receipts and invoices*/
-    val documentType = if (isReceiver) incomingDoc.documentType else Config.INVOICE
+    val documentType = if (isBuyer) Config.RECEIPT else Config.INVOICE
 
     logger.info(s"Got doc for OrderId: ${incomingDoc.orderId} with type: $documentType")
-    val doc = incomingDoc.copy(documentType = documentType, created = context.lowLevelApi.getTxTimestamp)
-    val received = documentType == Config.RECEIPT
-    val confirmed = documentType == Config.INVOICE
+    val doc = incomingDoc.copy(documentType = documentType, created = context.lowLevelApi.getTxTimestamp.toEpochMilli)
+//    val received = documentType == Config.RECEIPT
+//    val confirmed = documentType == Config.INVOICE
 
 
     context.store.get[Order](doc.orderId) map { order =>
@@ -46,10 +46,10 @@ trait Services {
       //we need to update the previously uploaded document
       val documents = doc +: order.documents.filterNot(_.documentType == documentType)
       //also we have to update order status
-      Order(order.id, documents, received || order.received, confirmed || order.confirmed, order.created)
+      Order(order.id, documents, isBuyer || order.received, !isBuyer || order.confirmed, order.created)
     } getOrElse {
       //New Order
-      Order(doc.orderId, Array(doc), received, confirmed, doc.created)
+      Order(doc.orderId, Array(doc), isBuyer, !isBuyer, doc.created)
     }
   }
 

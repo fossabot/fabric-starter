@@ -1,5 +1,6 @@
 # docker-machine scp -r templates factoringdev-orderer:templates
 eval "$(docker-machine env factoringdev-orderer)"
+./clean.sh
 export WORK_DIR=/home/factoring_admin
 export COMPOSE_FLAGS="-forderer-multihost.yaml"
 export ORG=""
@@ -15,13 +16,14 @@ docker-machine scp -r chaincode factoringdev-factor:.
 # docker-machine scp -r webapp factoringdev-factor:.
 # docker-machine scp -r backend factoringdev-factor:.
 eval "$(docker-machine env factoringdev-factor)"
+./clean.sh
 export WORK_DIR=/home/factoring_admin
 export COMPOSE_FLAGS="-fmultihost.yaml"
 export ORG="factor"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
 export DOMAIN=factoring.ru
-docker run -dit --name alpine --network fabric-overlay alpine
+# docker run -dit --name alpine --network fabric-overlay alpine
 ./generate-peer.sh
 docker-compose -f docker-compose.yaml -f multihost.yaml up -d
 docker-compose -f factor-network/docker/backend-compose.yaml up -d
@@ -44,22 +46,25 @@ export COMPOSE_PROJECT_NAME="factoring"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
 export DOMAIN=factoring.ru
+docker-machine scp -r chaincode factoringdev-factor:.
 ./channel-create.sh common
 ./channel-join.sh common
-./channel-create.sh sber0mvideo
-./channel-join.sh sber0mvideo
-./channel-create.sh sber0severstal
-./channel-join.sh sber0severstal
-./chaincode-install.sh factor_scala 1.27142 /opt/chaincode/java/factor  java
-./chaincode-instantiate.sh sber0mvideo factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]'  1.27142
-./chaincode-reload.sh sber0mvideo factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]' /opt/chaincode/java/factor java
+./channel-create.sh factor-buyer
+./channel-join.sh factor-buyer
+./channel-create.sh factor-buyer2
+./channel-join.sh factor-buyer2
+./chaincode-install.sh factor_scala 3.1 /opt/chaincode/java/factor  java
+./chaincode-instantiate.sh factor-buyer factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]'  3.1
+./chaincode-instantiate.sh common factor_scala '["init", "{\"id\": \"factor\",\"mspId\":\"factor\",\"role\": \"Factor\",\"name\": \"Сбербанк\"}", "{\"id\": \"buyer\",\"mspId\":\"buyer\",\"role\": \"Buyer\",\"name\": \"Мвидео\"}","{\"id\": \"buyer2\",\"mspId\":\"buyer2\",\"role\": \"Buyer\",\"name\": \"Северсталь\"}"]' 3.1
+# ./chaincode-reload.sh factor-buyer factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]' /opt/chaincode/java/factor java
 
 # docker-machine scp -r templates factoringdev-buyer:templates
 docker-machine scp -r chaincode factoringdev-buyer:.
 # docker-machine scp -r webapp factoringdev-buyer:.
 # docker-machine scp -r backend factoringdev-buyer:.
 eval "$(docker-machine env factoringdev-buyer)"
-docker run -dit --name alpine --network fabric-overlay alpine
+./clean.sh
+# docker run -dit --name alpine --network fabric-overlay alpine
 export WORK_DIR=/home/factoring_admin
 export COMPOSE_FLAGS="-fmultihost.yaml"
 export COMPOSE_PROJECT_NAME="factoring"
@@ -79,7 +84,7 @@ export COMPOSE_PROJECT_NAME="factoring"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
 export DOMAIN=factoring.ru
-./channel-add-org.sh sber0mvideo buyer
+./channel-add-org.sh factor-buyer buyer
 ./channel-add-org.sh common buyer
 
 
@@ -91,6 +96,7 @@ export COMPOSE_PROJECT_NAME="factoring"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
 export DOMAIN=factoring.ru
-# ./channel-join.sh common
-# ./channel-join.sh sber0mvideo
+./channel-join.sh common
+./channel-join.sh factor-buyer
 ./chaincode-install.sh factor_scala 3.1 /opt/chaincode/java/factor  java
+./factor-network/upgrade.sh

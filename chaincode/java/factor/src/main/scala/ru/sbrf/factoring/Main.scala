@@ -27,7 +27,7 @@ object Main extends ContractBase with App
   LoggerFactory
     .getLogger(Logger.ROOT_LOGGER_NAME)
     .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.INFO)
+    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   LoggerFactory
     .getLogger(classOf[ContractBase].getPackage.getName)
@@ -38,13 +38,13 @@ object Main extends ContractBase with App
   @ContractInit
   def init(context: ContractContext, factor: Organization, buyer: Organization): Unit = {
 
-    //update nulls 
-    val rows = context.store.list[Order]
-      .filter(row => row._2.created == null)
-
-    for (row <- rows) {
-      context.store.put(row._1, row._2.copy(created = Instant.now()))
-    }
+//    update nulls
+//    val rows = context.store.list[Order]
+//      .filter(row => row._2.created == null)
+//
+//    for (row <- context.store.list[Order]) {
+//      context.store.put(row._1, row._2.copy(created = Instant.now().toEpochMilli))
+//    }
 
     context.store.put(factor.id, factor)
     context.store.put(buyer.id, buyer)
