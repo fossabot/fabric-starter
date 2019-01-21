@@ -1,7 +1,12 @@
 package ru.sbrf.factoring.document
 
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneId}
+
+import com.github.apolubelov.fabric.contract.annotation.ContractOperation
+import com.github.apolubelov.fabric.contract.store.Key
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
-import com.github.apolubelov.fabric.contract.annotations.ContractOperation
 import org.slf4j.{Logger, LoggerFactory}
 import ru.sbrf.factoring.Config
 import ru.sbrf.factoring.assets.{Document, Order, Organization}
@@ -15,7 +20,20 @@ trait Services {
     val orders: Seq[Order] = documents map getUpdatedOrder(context)
 
     for (order <- orders) {
-      context.store.put[Order](order.id, order)
+
+      val doc = order.documents.head
+      val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm")
+      val dateSegment: Long = LocalDateTime.parse(
+        doc.documentDate + " 00:00", dateFormatter)
+        .atZone(ZoneId.systemDefault())
+        .toInstant
+        .toEpochMilli
+
+      val key: Key = new Key(
+          dateSegment.toString, order.id)
+      val logger: Logger = LoggerFactory.getLogger(this.getClass)
+      logger.trace(s"documentDate = ${doc.documentDate}, dateSegment = $dateSegment")
+      context.store.put[Order](key, order)
     }
     Success(orders.toArray)
   }
@@ -24,21 +42,20 @@ trait Services {
   def getUpdatedOrder(context: ContractContext)(incomingDoc: Document): Order = {
 
     val txAuthor = context.clientIdentity.mspId
-    val buyer = context.store.list[Organization].filter(_._2.role == "Buyer")
+    val buyer = context.store.list[Organization].filter(_.value.role == "Buyer")
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
     if (buyer.isEmpty) Error(s"Buyer organization was not found. Please create buyer organization for the current contract (channel) ")
-    logger.trace(s"Found Buyer ${buyer.head._2.id} with mspId = ${buyer.head._2.mspId}")
+    logger.trace(s"Found Buyer ${buyer.head.value.id} with mspId = ${buyer.head.value.mspId}")
     logger.trace(s"current transaction author: $txAuthor")
     /*No one except buyer can submit a receipt*/
-    val isBuyer = txAuthor == buyer.head._2.mspId
-
+    val isBuyer = txAuthor == buyer.head.value.mspId
     /*Buyer can post both receipts and invoices*/
     val documentType = if (isBuyer) Config.RECEIPT else Config.INVOICE
 
     logger.info(s"Got doc for OrderId: ${incomingDoc.orderId} with type: $documentType")
     val doc = incomingDoc.copy(documentType = documentType, created = context.lowLevelApi.getTxTimestamp.toEpochMilli)
-//    val received = documentType == Config.RECEIPT
-//    val confirmed = documentType == Config.INVOICE
+    //    val received = documentType == Config.RECEIPT
+    //    val confirmed = documentType == Config.INVOICE
 
 
     context.store.get[Order](doc.orderId) map { order =>

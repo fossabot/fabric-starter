@@ -1,8 +1,10 @@
 package ru.sbrf.factoring.order
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
-import com.github.apolubelov.fabric.contract.annotations.ContractOperation
+import com.github.apolubelov.fabric.contract.annotation.ContractOperation
+import com.github.apolubelov.fabric.contract.store.Key
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
 import org.slf4j.{Logger, LoggerFactory}
 import ru.sbrf.factoring.Config.PAGE_SIZE
@@ -12,9 +14,9 @@ trait Services {
 
   case class
   OrdersQueryParams(unmatched: Boolean = false,
-                               from: Long,
-                               to: Long,
-                               page: Int)
+                    from: Long,
+                    to: Long,
+                    page: Int)
 
   @ContractOperation
   def createOrder(context: ContractContext, order: Order): ContractResponse = {
@@ -32,7 +34,7 @@ trait Services {
   @ContractOperation
   def listOrders(context: ContractContext): ContractResponse = {
     val orders: Array[Order] = context.store.list[Order]
-      .map(_._2) // take only values
+      .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(orders)
   }
@@ -66,17 +68,26 @@ trait Services {
 
       val fromCondition = o.created > queryParams.from //.isAfter(Instant.ofEpochMilli(queryParams.from))
 
-      val toCondition = o.created  < queryParams.to//.isBefore(Instant.ofEpochMilli(queryParams.to))
+      val toCondition = o.created < queryParams.to //.isBefore(Instant.ofEpochMilli(queryParams.to))
 
       logger.trace(s"created = ${o.created} ,from =  ${queryParams.from}, to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
       logger.trace(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
       matchFlagCondition && fromCondition && toCondition
     }
 
-    val ordersFiltered = context.store.list[Order]
-      .map(_._2) // take only values
-      .filter(checkBoundaries)
+    //
+    //    val ordersFiltered = context.store.list[Order]
+    //      .map(_.value) // take only values
+    //      .filter(checkBoundaries)
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    val dayFrom = Instant.ofEpochMilli(queryParams.from).truncatedTo(ChronoUnit.DAYS)
+    val dayTo = Instant.ofEpochMilli(queryParams.to).truncatedTo(ChronoUnit.DAYS)
+    val keys = (dayFrom.toEpochMilli to dayTo.toEpochMilli by 86400000).map(_.toString)
+    logger.trace(s"keys:")
+    keys foreach logger.trace
+    val ordersFiltered = keys.flatMap(key => {
+      context.store.get[Order](key)
+    })
     logger.trace(s"Orders filtered size: ${ordersFiltered.size}")
 
 

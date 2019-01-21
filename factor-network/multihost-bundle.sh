@@ -1,4 +1,5 @@
 # docker-machine scp -r templates factoringdev-orderer:templates
+export FABRIC_VERSION=1.4.0
 eval "$(docker-machine env factoringdev-orderer)"
 ./clean.sh
 export WORK_DIR=/home/factoring_admin
@@ -12,7 +13,7 @@ export DOMAIN=factoring.ru
 docker-compose -f docker-compose-orderer.yaml -f orderer-multihost.yaml up -d
 
 # docker-machine scp -r templates factoringdev-factor:templates
-docker-machine scp -r chaincode factoringdev-factor:.
+# docker-machine scp -r chaincode factoringdev-factor:.
 # docker-machine scp -r webapp factoringdev-factor:.
 # docker-machine scp -r backend factoringdev-factor:.
 eval "$(docker-machine env factoringdev-factor)"
@@ -55,15 +56,16 @@ docker-machine scp -r chaincode factoringdev-factor:.
 ./channel-join.sh factor-buyer2
 ./chaincode-install.sh factor_scala 3.1 /opt/chaincode/java/factor  java
 ./chaincode-instantiate.sh factor-buyer factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]'  3.1
-./chaincode-instantiate.sh common factor_scala '["init", "{\"id\": \"factor\",\"mspId\":\"factor\",\"role\": \"Factor\",\"name\": \"Сбербанк\"}", "{\"id\": \"buyer\",\"mspId\":\"buyer\",\"role\": \"Buyer\",\"name\": \"Мвидео\"}","{\"id\": \"buyer2\",\"mspId\":\"buyer2\",\"role\": \"Buyer\",\"name\": \"Северсталь\"}"]' 3.1
+./chaincode-instantiate.sh common factor_scala '["init", "{\"id\": \"factor1\",\"mspId\":\"factor\",\"role\": \"Factor\",\"name\": \"Сбербанк\"}", "{\"id\": \"buyer1\",\"mspId\":\"buyer\",\"role\": \"Buyer\",\"name\": \"Мвидео\"}"]' 3.1
+./chaincode-instantiate.sh factor-buyer2 factor_scala '["init", "{\"id\": \"a1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2c\",\"mspId\":\"buyer2\",\"role\": \"Buyer\"}"]'  3.1
 # ./chaincode-reload.sh factor-buyer factor_scala '["init", "{\"id\": \"1\",\"mspId\":\"factor\",\"role\": \"Factor\"}", "{\"id\": \"2\",\"mspId\":\"buyer\",\"role\": \"Buyer\"}"]' /opt/chaincode/java/factor java
 
 # docker-machine scp -r templates factoringdev-buyer:templates
-docker-machine scp -r chaincode factoringdev-buyer:.
 # docker-machine scp -r webapp factoringdev-buyer:.
 # docker-machine scp -r backend factoringdev-buyer:.
 eval "$(docker-machine env factoringdev-buyer)"
 ./clean.sh
+docker-machine scp -r chaincode factoringdev-buyer:.
 # docker run -dit --name alpine --network fabric-overlay alpine
 export WORK_DIR=/home/factoring_admin
 export COMPOSE_FLAGS="-fmultihost.yaml"

@@ -1,7 +1,7 @@
 package ru.sbrf.factoring.contract
 
+import com.github.apolubelov.fabric.contract.annotation.ContractOperation
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
-import com.github.apolubelov.fabric.contract.annotations.ContractOperation
 import ru.sbrf.factoring.assets.Contract
 
 trait Services {
@@ -20,7 +20,7 @@ trait Services {
   @ContractOperation
   def listContracts(context: ContractContext): ContractResponse = {
     val contracts: Array[Contract] = context.store.list[Contract]
-      .map(_._2) // take only values
+      .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(contracts)
   }
