@@ -1,8 +1,7 @@
 package ru.sbrf.factoring.document
 
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{LocalDateTime, ZoneId}
 
 import com.github.apolubelov.fabric.contract.annotation.ContractOperation
 import com.github.apolubelov.fabric.contract.store.Key
@@ -22,22 +21,27 @@ trait Services {
     for (order <- orders) {
 
       val doc = order.documents.head
-      val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm")
-      val dateSegment: Long = LocalDateTime.parse(
-        doc.documentDate + " 00:00", dateFormatter)
-        .atZone(ZoneId.systemDefault())
-        .toInstant
-        .toEpochMilli
+      val dateSegmentKey: String = calcSegment(doc.documentDate)
 
       val key: Key = new Key(
-          dateSegment.toString, order.id)
+        dateSegmentKey, order.id)
       val logger: Logger = LoggerFactory.getLogger(this.getClass)
-      logger.trace(s"documentDate = ${doc.documentDate}, dateSegment = $dateSegment")
+      logger.trace(s"documentDate = ${doc.documentDate}, dateSegmentKey = $dateSegmentKey")
       context.store.put[Order](key, order)
     }
     Success(orders.toArray)
   }
 
+
+  def calcSegment(documentDate: String) = {
+    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm")
+    LocalDateTime.parse(
+      documentDate + " 00:00", dateFormatter)
+      .atZone(ZoneId.of("UTC"))
+      .toInstant
+      .toEpochMilli
+      .toString
+  }
 
   def getUpdatedOrder(context: ContractContext)(incomingDoc: Document): Order = {
 
@@ -58,13 +62,19 @@ trait Services {
     //    val confirmed = documentType == Config.INVOICE
 
 
-    context.store.get[Order](doc.orderId) map { order =>
+    val maybeOrder: Option[Order] = context
+      .store
+      .get[Order](Key(calcSegment(doc.documentDate), doc.orderId))
+
+    maybeOrder map { order =>
       //In case of existing order
       //we need to update the previously uploaded document
+      logger.trace(s"${doc.orderId} was found with status received: ${order.received} and confirmed: ${order.confirmed}")
       val documents = doc +: order.documents.filterNot(_.documentType == documentType)
       //also we have to update order status
       Order(order.id, documents, isBuyer || order.received, !isBuyer || order.confirmed, order.created)
     } getOrElse {
+      logger.trace(s"${doc.orderId} is new!")
       //New Order
       Order(doc.orderId, Array(doc), isBuyer, !isBuyer, doc.created)
     }

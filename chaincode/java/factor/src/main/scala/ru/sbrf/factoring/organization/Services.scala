@@ -8,7 +8,7 @@ import ru.sbrf.factoring.assets.Organization
 trait Services {
   @ContractOperation
   def createOrganization(context: ContractContext, organization: Organization): ContractResponse = {
-    context.store.put(organization.id, organization)
+    context.store.put(organization.mspId, organization)
     Success()
   }
 
@@ -25,13 +25,15 @@ trait Services {
       .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
 
-    val (me, notMe) = organizations.span(_.mspId == myId)
-
-    val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    logger.trace(s"found organizations:")
-    organizations foreach println
-    logger.trace(s"me = ${me.mkString(";")}")
-    logger.trace(s"notMe = ${notMe.mkString(";")}")
-    Success(me.map(_.copy(isMe = true)) ++ notMe)
+//    val (me, notMe) = organizations.span(_.mspId == myId)
+//
+//
+//
+//    val logger: Logger = LoggerFactory.getLogger(this.getClass)
+//    logger.trace(s"found organizations:")
+//    organizations.foreach(o => println(s"org: s$o,  myId == org.mspID: ${myId == o.mspId}"))
+//    logger.trace(s"me = ${me.mkString(";")}")
+//    logger.trace(s"notMe = ${notMe.mkString(";")}")
+    Success(organizations.map(o => o.copy(isMe = myId == o.mspId)))
   }
 }
