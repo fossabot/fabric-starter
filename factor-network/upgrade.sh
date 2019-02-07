@@ -7,7 +7,7 @@ cd ~/Documents/lab/factoring/backend/
 sbt 'set test in assembly := {}' clean assembly
 cd ~/Blockchain/HLF/fabric-starter
 docker-machine scp -r ~/Blockchain/HLF/fabric-starter/backend factoringdev-buyer:.
-docker-machine scp -r ~/Blockchain/HLF/fabric-starter/backend factoringdev-factor:.
+# docker-machine scp -r ~/Blockchain/HLF/fabric-starter/backend factoringdev-factor:.
 eval "$(docker-machine env factoringdev-buyer)"
 docker restart backend.buyer.factoring.ru
 eval "$(docker-machine env factoringdev-factor)"

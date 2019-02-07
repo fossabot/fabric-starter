@@ -21,7 +21,7 @@ services:
       command: java -jar /opt/backend/factoring.jar
       ports: 
         - 5500:5500
-networks:
-  default:
-    external:
-      name: fabric-overlay
+# networks:
+#   default:
+#     external:
+#       name: fabric-overlay

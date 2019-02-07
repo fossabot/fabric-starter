@@ -38,3 +38,5 @@ chaincode/java/fabric-chaincode-example-gradle/
 chaincode/java/factor/out/
 
 backend/
+
+chaincode/java/factoring/out/

@@ -12,6 +12,8 @@ version: '3.7'
 services:
 
   orderer:
+    environment:
+      - FABRIC_LOGGING_SPEC=debug
     volumes:
       - ${WORK_DIR:-/home/docker}/crypto-config/configtx:/etc/hyperledger/configtx
       - ${WORK_DIR:-/home/docker}/crypto-config/ordererOrganizations/${DOMAIN:-example.com}/orderers/orderer.${DOMAIN:-example.com}/:/etc/hyperledger/crypto/orderer

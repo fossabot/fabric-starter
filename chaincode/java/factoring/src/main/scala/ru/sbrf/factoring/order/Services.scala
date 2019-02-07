@@ -1,20 +1,24 @@
 package ru.sbrf.factoring.order
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
-import com.github.apolubelov.fabric.contract.annotations.ContractOperation
+import com.github.apolubelov.fabric.contract.annotation.ContractOperation
+import com.github.apolubelov.fabric.contract.store.Key
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
 import org.slf4j.{Logger, LoggerFactory}
 import ru.sbrf.factoring.Config.PAGE_SIZE
 import ru.sbrf.factoring.assets.Order
 
+import scala.collection.immutable
+
 trait Services {
 
   case class
   OrdersQueryParams(unmatched: Boolean = false,
-                               from: Long,
-                               to: Long,
-                               page: Int)
+                    from: Long,
+                    to: Long,
+                    page: Int)
 
   @ContractOperation
   def createOrder(context: ContractContext, order: Order): ContractResponse = {
@@ -32,7 +36,7 @@ trait Services {
   @ContractOperation
   def listOrders(context: ContractContext): ContractResponse = {
     val orders: Array[Order] = context.store.list[Order]
-      .map(_._2) // take only values
+      .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(orders)
   }
@@ -59,30 +63,41 @@ trait Services {
   def listOrdersWithParams(context: ContractContext, queryParams: OrdersQueryParams): ContractResponse = {
 
 
-    def checkBoundaries(o: Order): Boolean = {
-      val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    //    def checkBoundaries(o: Order): Boolean = {
+    //      val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    //
+    //      val matchFlagCondition = !queryParams.unmatched || (queryParams.unmatched && (o.confirmed != o.received))
+    //
+    //      val fromCondition = o.created > queryParams.from //.isAfter(Instant.ofEpochMilli(queryParams.from))
+    //
+    //      val toCondition = o.created < queryParams.to //.isBefore(Instant.ofEpochMilli(queryParams.to))
+    //
+    //      logger.trace(s"created = ${o.created} ,from =  ${queryParams.from}, to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
+    //      logger.trace(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
+    //      matchFlagCondition && fromCondition && toCondition
+    //    }
 
-      val matchFlagCondition = !queryParams.unmatched || (queryParams.unmatched && (o.confirmed != o.received))
-
-      val fromCondition = o.created > queryParams.from //.isAfter(Instant.ofEpochMilli(queryParams.from))
-
-      val toCondition = o.created  < queryParams.to//.isBefore(Instant.ofEpochMilli(queryParams.to))
-
-      logger.trace(s"created = ${o.created} ,from =  ${queryParams.from}, to = ${queryParams.to}, upperBound = ${Instant.ofEpochMilli(queryParams.to)}")
-      logger.trace(s"order: ${o.id}, ${o.received},${o.confirmed} \n unMatch = $matchFlagCondition,\n  fromCondition = $fromCondition, \n toCondition = $toCondition")
-      matchFlagCondition && fromCondition && toCondition
-    }
-
-    val ordersFiltered = context.store.list[Order]
-      .map(_._2) // take only values
-      .filter(checkBoundaries)
+    //
+    //    val ordersFiltered = context.store.list[Order]
+    //      .map(_.value) // take only values
+    //      .filter(checkBoundaries)
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    val keys = getDateKeys(queryParams)
+    logger.trace(s"keys:$keys")
+    keys foreach logger.trace
+    val ordersFiltered = keys
+      .flatMap(key => {
+        context.store.list[Order](key)
+      })
+      .map(_.value)
+      .filter(order => !queryParams.unmatched || (order.confirmed && order.received))
     logger.trace(s"Orders filtered size: ${ordersFiltered.size}")
 
 
     val ordersSliced = ordersFiltered
       .slice(PAGE_SIZE * (queryParams.page - 1),
-        PAGE_SIZE * (queryParams.page - 1) + PAGE_SIZE).toArray
+        PAGE_SIZE * (queryParams.page - 1) + PAGE_SIZE)
+      .toArray
     // use Array, as GSON knows nothing about scala collections
 
 
@@ -109,4 +124,10 @@ trait Services {
   //  }
 
 
+  def getDateKeys(queryParams: OrdersQueryParams) = {
+    val dayFrom = Instant.ofEpochMilli(queryParams.from).truncatedTo(ChronoUnit.DAYS)
+    val dayTo = Instant.ofEpochMilli(queryParams.to).truncatedTo(ChronoUnit.DAYS)
+    val keys = (dayFrom.toEpochMilli to dayTo.toEpochMilli by 86400000).map(_.toString).toList
+    keys
+  }
 }
