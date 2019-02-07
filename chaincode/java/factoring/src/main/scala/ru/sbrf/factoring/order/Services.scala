@@ -85,16 +85,18 @@ trait Services {
     val keys = getDateKeys(queryParams)
     logger.trace(s"keys:$keys")
     keys foreach logger.trace
-    val ordersFiltered = keys.flatMap(key => {
-      context.store.list[Order](key)
-    })
+    val ordersFiltered = keys
+      .flatMap(key => {
+        context.store.list[Order](key)
+      })
+      .map(_.value)
+      .filter(order => !queryParams.unmatched || (order.confirmed && order.received))
     logger.trace(s"Orders filtered size: ${ordersFiltered.size}")
 
 
     val ordersSliced = ordersFiltered
       .slice(PAGE_SIZE * (queryParams.page - 1),
         PAGE_SIZE * (queryParams.page - 1) + PAGE_SIZE)
-      .map(_.value)
       .toArray
     // use Array, as GSON knows nothing about scala collections
 

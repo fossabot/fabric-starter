@@ -13,7 +13,7 @@ export DOMAIN=factoring.ru
 
 #BUYER
 eval "$(docker-machine env factoringdev-buyer)"
-#docker-machine scp -r chaincode factoringdev-buyer:.
+docker-machine scp -r chaincode factoringdev-buyer:.
 export WORK_DIR=/home/factoring_admin
 export COMPOSE_FLAGS="-fmultihost.yaml"
 export COMPOSE_PROJECT_NAME="factoring"
@@ -21,4 +21,4 @@ export ORG="buyer"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'
 export CAS='{ "factor": "ca.factor.factoring.ru:7054", "buyer": "ca.buyer.factoring.ru:7054", "seller": "ca.seller.factoring.ru:7054" }'
 export DOMAIN=factoring.ru
-./chaincode-install.sh factor_scala 1.12664 /opt/chaincode/java/factor  java
+./chaincode-install.sh factor_scala 1.26417 /opt/chaincode/java/factor  java

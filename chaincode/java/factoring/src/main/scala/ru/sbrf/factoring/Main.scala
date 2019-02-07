@@ -38,8 +38,8 @@ object Main extends ContractBase with App
 
     context.store.list[Organization].map(_.key) foreach context.store.del
 
-    context.store.put(factor.id, factor)
-    context.store.put(buyer.id, buyer)
+    context.store.put(factor.mspId, factor)
+    context.store.put(buyer.mspId, buyer)
   }
 
   //    @ContractOperation
