@@ -62,7 +62,7 @@ services:
   www.orderer:
     image: nginx
     container_name: www.${DOMAIN:-example.com}
-#    ports:
-#      - ${WWW_PORT:-8080}:80
+    ports:
+     - ${WWW_PORT:-8080}:80
     volumes:
       - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/msp:/usr/share/nginx/html/msp

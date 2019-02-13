@@ -24,7 +24,7 @@ docker-compose -f docker-compose-orderer.yaml -f orderer-multihost.yaml up -d
 docker-machine scp -r chaincode factoringdev-buyer:.
 docker-machine scp -r chaincode factoringdev-factor:.
 eval "$(docker-machine env factoringdev-factor)"
-export WORK_DIR=/home/factoring_admin
+export WORK_DIR=/home/factoring_admin/fabric-starter
 export COMPOSE_FLAGS="-fmultihost.yaml"
 export ORG="factor"
 export ORGS='{"factor": "peer0.factor.factoring.ru:7051", "buyer": "peer0.buyer.factoring.ru:7051", "seller": "peer0.seller.factoring.ru:7051"}'

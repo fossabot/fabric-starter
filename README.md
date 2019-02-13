@@ -41,19 +41,84 @@
     |*|localhost|TCP|7053|
     |*|localhost|TCP|7051|
     |*|localhost|TCP|80|
-    |localhost|104.40.6.70|TCP|7053|
-    |localhost|104.40.6.70|TCP|7051|
-    |localhost|104.40.6.70|TCP|80|
-    |localhost|40.78.41.254|TCP|7053|
-    |localhost|40.78.41.254|TCP|7051|
-    |localhost|40.78.41.254|TCP|80|
-    |localhost|168.62.194.115|TCP|7053|
-    |localhost|168.62.194.115|TCP|7051|
-    |localhost|168.62.194.115|TCP|80|
+    |localhost|52.174.22.75|TCP|7053|
+    |localhost|52.174.22.75|TCP|7051|
+    |localhost|52.174.22.75|TCP|80|
+    |localhost|104.40.205.94|TCP|7053|
+    |localhost|104.40.205.94|TCP|7051|
+    |localhost|104.40.205.94|TCP|80|
+
 
 3. Указать адреса других участников сети в списке `/etc/hosts` : TBD
 
-Пример файла: TBD
+```
+52.174.22.75 www.mvideo.factoring
+52.174.22.75 peer0.mvideo.factoring
+52.174.22.75 peer1.mvideo.factoring
+
+104.40.205.94 www.factoring.ru
+```
+
+4. Настроить DNS для контейнеров:
+```bash
+sudo apt install dnsmasq
+```
+
+Проверить статус службы:
+
+```bash
+systemctl status dnsmasq
+```
+
+Найти адрес шлюза, который предоставляет Docker для внутренней подсети
+```
+ip addr | grep docker0
+```
+
+*Пример результата*:
+  **docker0**: <BROADCAST,MULTICAST,UP,LOWER_UP>
+  ...
+    inet **`172.17.0.1`**/16
+
+Добавить адрес в конфигурационный файл
+
+```bash
+sudo nano /etc/docker/daemon.json
+```
+
+Пример
+
+```javascript
+{
+    "dns": ["172.17.0.1", "172.18.0.1", "8.8.8.8", "8.8.4.4"]
+}
+```
+
+Перезапустить службу Docker
+
+```bash
+sudo service docker restart
+```
+
+Создать конфигурационный файл для bridge сети
+
+```
+sudo mkdir -p /etc/NetworkManager/dnsmasq.d
+sudo nano /etc/NetworkManager/dnsmasq.d/docker-bridge.conf
+```
+
+Добавить в него те же самые адреса:
+
+```
+listen-address=172.17.0.1
+listen-address=172.18.0.1
+```
+
+Перезапустить службу:
+
+```
+sudo service dnsmasq restart
+```
 
 #### Развертывание контейнеров типовой конфигурации
 
