@@ -56,7 +56,8 @@
 52.174.22.75 peer0.mvideo.factoring
 52.174.22.75 peer1.mvideo.factoring
 
-104.40.205.94 www.factoring.ru
+104.40.205.94 www.factoring
+104.40.205.94 orderer.factoring
 ```
 
 4. Настроить DNS для контейнеров:
@@ -131,7 +132,7 @@ sudo service dnsmasq restart
        EXPORT DOMAIN="factoring"
        EXPORT CHAINCODE_VERSION = #версия смарт-контракта
        ./generate-peer.sh
-       docker-compose up -d
+       docker-compose -f docker-compose.yaml -f ports.yaml up -d
 5. В результате должны появиться контейнеры со следующими именами:
 
     * peer0.`org`.`domain`.com - Узел участника
