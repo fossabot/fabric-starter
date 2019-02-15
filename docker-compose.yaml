@@ -186,11 +186,11 @@ services:
       #   - ./backend:/opt/backend #CHANGE ME
       volumes:
       - ${WORK_DIR-/home/docker}/backend:/opt/backend
+      links: 
+        - api:api
       environment:
-        - API_HOST=api.${ORG:-org1}.${DOMAIN:-example.com}
+        - API_HOST=api
         - API_PORT=4000
-      depends_on: 
-        - api
       command: java -jar /opt/backend/factoring.jar
       ports: 
         - 5500:5500
