@@ -190,7 +190,7 @@ services:
         - api:api
       environment:
         - API_HOST=api
-        - API_PORT=4000
+        - API_PORT=3000
       command: java -jar /opt/backend/factoring.jar
       ports: 
         - 5500:5500
