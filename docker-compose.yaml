@@ -156,8 +156,8 @@ services:
       - CRYPTO_CONFIG_DIR=/usr/src/app/crypto-config
       - WEBAPP_DIR=/usr/src/app/webapp
       - MSP_DIR=/usr/src/app/msp
-      - ORGS=${ORGS:-"org1":"peer0.org1.example.com:7051"}
-      - CAS=${CAS:-"org1":"ca.org1.example.com:7054"}
+      # - ORGS=${ORGS:-"org1":"peer0.org1.example.com:7051"}
+      # - CAS=${CAS:-"org1":"ca.org1.example.com:7054"}
       - DISCOVER_AS_LOCALHOST=false
       - ENROLL_ID
       - ENROLL_SECRET
