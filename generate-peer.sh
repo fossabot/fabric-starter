@@ -3,7 +3,9 @@ source lib.sh
 
 ## Workaround until docker-compose issue 4601 is solved
 # https://github.com/docker/compose/issues/4601
-[ -n "${DOCKER_HOST}" ] && docker run -dit --name alpine --network fabric-overlay alpine
+#[ -n "${DOCKER_HOST}" ] && docker run -dit --name alpine --network fabric-overlay alpine
+
+#[ -d "crypto-config/peerOrganizations/$ORG.$DOMAIN" ] && exit TODO: adjust for docker-machine
 
 IFS='.' read -r -a subDomains <<< ${DOMAIN}
 
@@ -25,4 +27,4 @@ runCLI "rm -rf crypto-config/peerOrganizations/$ORG.$DOMAIN \
     && mv crypto-config/peerOrganizations/$ORG.$DOMAIN/ca/*_sk crypto-config/peerOrganizations/$ORG.$DOMAIN/ca/sk.pem \
     && mv crypto-config/peerOrganizations/$ORG.$DOMAIN/users/Admin@$ORG.$DOMAIN/msp/keystore/*_sk crypto-config/peerOrganizations/$ORG.$DOMAIN/users/Admin@$ORG.$DOMAIN/msp/keystore/sk.pem \
     && cp -r crypto-config/ordererOrganizations/$DOMAIN/msp/* crypto-config/peerOrganizations/$ORG.$DOMAIN/msp 2>/dev/null \
-    || chown $UID -R crypto-config/"
+    && chown $UID -R crypto-config/ || chown $UID -R crypto-config/"
