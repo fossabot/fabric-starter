@@ -53,6 +53,10 @@
 
 104.40.205.94 www.factoring
 104.40.205.94 orderer.factoring
+
+89.175.56.229 www.sbf
+89.175.56.229 peer0.sbf.factoring
+89.175.56.229 peer1.sbf.factoring
 ```
 
 4. Настроить DNS для контейнеров:
