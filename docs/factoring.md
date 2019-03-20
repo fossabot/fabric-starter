@@ -37,12 +37,12 @@
 2. Указать адреса других участников сети в списке `/etc/hosts` :
 
 ```
-52.174.22.75 www.mvideo.factoring
-52.174.22.75 peer0.mvideo.factoring
-52.174.22.75 peer1.mvideo.factoring
+91.220.181.242 www.mvideo.factoring
+91.220.181.242 peer0.mvideo.factoring
+91.220.181.242 peer1.mvideo.factoring
 
-104.40.205.94 www.factoring
-104.40.205.94 orderer.factoring
+89.175.56.229 www.factoring
+89.175.56.229 orderer.factoring
 
 89.175.56.229 www.sbf
 89.175.56.229 peer0.sbf.factoring
