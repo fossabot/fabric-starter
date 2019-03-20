@@ -1,29 +1,28 @@
-# Инструкция по подключению к сети Факторинг
+# Starter Application for Hyperledger Fabric
 
-## Цель документа
+Create a network to jump start development of your decentralized application on 
+[Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) platform.
 
-* обеспечить возможность самостоятельного развертывания узла для участия в децентрализованной сети на платформе HyperLedger Fabric
-* обеспечить возможность по выполнению специальных настроек для использования смарт-контрактов ( ChainCode) по автоматизации процессов факторинга
+The network is run by docker containers and can be deployed to one host for development or to multiple hosts for testing 
+or production.
 
-## Термины и определения
+Scripts of this starter generate crypto material and config files, start the network and deploy your chaincodes. 
+Developers can use [REST API](https://github.com/olegabu/fabric-starter-rest) to invoke and query chaincodes, 
+explore blocks and transactions.
 
-* Канал - сущность в терминологии Hyperledger Fabric, соответствующая отдельной цепочке блоков транзакций, которая доступна и распространяется только между ограниченным кругом организаций и упорядочивающих узлов. Каждый канал характеризуется набором полномочий подключенных участников и правилами изменения полномочий
-* Консорциум - перечень полноправных участников Сети. С технической точки зрения смарт-контракты Факторинг настроены таким образом, что не являющиеся членами консорциума организации имеет доступ только для просмотра данных в каналах
+What's left is to develop your chaincodes and place them into the [chaincode](./chaincode) folder, 
+and user interface as a single page web app that you can serve by by placing the sources into the [www](./www) folder.
 
-## Компонентный состав решения
+See also
 
-* узел (`peer`) - обязательный компонент, docker-container, внутри которого исполняет код, реализующий базовую бизнес-логику платформы: сетевое взаимодействие с другими участниками, взаимодействие с хранилищем (`ledger`), развертывание смарт-контрактов (`ChainCode`)
-* Смарт-контракт (`ChainCode`) - массив компонент, представляющих собой docker-container, содержащие исполняемый код, реализующий бизнес-логику по изменению и получению данных в ledger
-* упорядочивающий узел (`Orderer`) - опциональный компонент, docker-container, внутри которого исполняется код получения транзакций от peer, проверка их корректности, упорядочивание и формирование блоков
-* удостоверяющий цент (`CA`) - обязательный компонент, docker-container, содержащий в себе хранилище доверенных сертификатов других участников, а также выпускающий сертификаты для дополнительных узлов внутри предприятия
-* вспомогательные сервисы (`Backend`) - опциональный компонент, docker-container, внутри которого исполняется код, предоставляющий возможность пользователям просматривать данные из ledger и исполнять смарт-контракты в браузере
-* API сервер (`API Node`) -
+- [fabric-starter-rest](https://github.com/olegabu/fabric-starter-rest) REST API server and client built with NodeJS SDK
+- [fabric-starter-web](https://github.com/olegabu/fabric-starter-web) Starter web application to work with the REST API
+- [chaincode-node-storage](https://github.com/olegabu/chaincode-node-storage) Base class for node.js chaincodes with CRUD functionality
 
-## Этапы подключения участника
 
-Можно выделить два основных этапа развертывания решения.
+## Blockchain network deployment
 
-### Подключение к сети
+The following sections describe Fabric Starter possibilites in more details:
 
 - [Installation.](#install)
 - [Network with 1 organization (and orderer) for development.](#example1org)
@@ -34,32 +33,22 @@
 - [Consortium Types. Invite-based and Majority-based Governance](#consortiumtypes)
 - [Development\Release cycle](#releasecycle)
 
-#### Инфраструктура
 
-1. Выделить в сети предприятия или в облачной инфраструктуре сервер со следующими параметрами:
-    * Ресурсы не менее чем 2 CPU, 2 Gb RAM, 10 GB HDD
-    * Рекомендуемая ОС: Ubuntu LTS
-    * Установленное ПО: Docker, Docker-compose
 
-2. Обеспечить сетевой доступ по следующим портам и протоколам:
+<a name="install"></a>
+## Install
+See [Installation](docs/install.md)
 
-    |Откуда|Куда|Протокол|Порт|
-    |--|--|--|--|
-    |*|localhost|TCP|7053|
-    |*|localhost|TCP|7051|
-    |*|localhost|TCP|80|
-    |localhost|52.174.22.75|TCP|7050-7054,80|
-    |localhost|104.40.205.94|TCP|7050-7054,80|
 
-3. Указать адреса других участников сети в списке `/etc/hosts` :
 
+<a name="setversion"></a>
+## Using a particular version of Hyperledger Fabric
+To deploy network with a particular version of HL Fabric export desired version in the 
+FABRIC_VERSION environment variable. The `latest` docker image tag is used by default.
+```bash
+export FABRIC_VERSION=1.2.0
 ```
-52.174.22.75 www.mvideo.factoring
-52.174.22.75 peer0.mvideo.factoring
-52.174.22.75 peer1.mvideo.factoring
 
-104.40.205.94 www.factoring
-104.40.205.94 orderer.factoring
 
 <a name="example1org"></a>
 ## Create a network with 1 organization for development
@@ -80,7 +69,6 @@ See [Use REST Api](docs/rest-api.md)
 ## Multi host deployment
 See [Multi host deployment](docs/multihost.md)
 
-Создать конфигурационный файл для bridge сети
 
 <a name="joinexternal"></a>
 ## Join to an External Network
@@ -111,22 +99,22 @@ export CONSORTIUM_CONFIG=InviteConsortiumPolicy
 <a name="releasecycle"></a>
 ## Releases\Snapshots cycle
 
- После настройки и проверки сетевого соединения, необходимо обеспечить включение организации (т.е. ее публичного ключа) в список доверенных участников. Для участия в сети необходимо явным образом  выраженное согласие других участников, которое с технической точки зрения выражается в следующем:
+As this project doesn't have a defined release cycle yet we create 
+`snapshot-{version}-{fabric-version}` branches  
+when we see code is stable enough or before introducing major changes\new features.  
 
- 1. Организация, обладающая упорядочивающим узлом (`Orderer`) должна пригласить нового участника в круг участников ( консорциум), выполнив команду: `./consortium-add-org.sh "$ORG"` . Кроме того, информация об адресах компонентов новой организации должны быть переданы и зафиксированы в настройках узлов других участников Сети.*Эта команда сработает только в соответствующем контуре уполномоченной организации, где развернут упорядочивающий узел*
- 2. Организация, создавшая канал, должна пригласить нового участника в канал, выполнив команду для каждого канала: `./channel-add-org.sh $CHANNEL_NAME $ORG`. *Эта команда сработает только у уполномоченной организации - создателя канала (контракта)*
- 3. Необходимо от лица подключаемой организации выполнить комманду для каждого планируемого к использованию канала: `./channel-join.sh $CHANNEL_NAME `  
+`Note`, the Hyperledger Fabric version which the snapshot depends on is defined in the `.env` file.  
+Also this project uses _olegabu/fabric-starter-rest_ docker image which has 
+the same versioning approach but even updated docker image with the same label (e.g. latest)
+won't be pulled automatically if it exists in the local docker registry.   
+You have to remove the old image manually (by `docker rmi -f olegabu/fabric-starter-rest`).    
 
- **Примечание**:
 
-* `$ORG` - название новой организации, указанное при развертывании узлов
-* `$CHANNEL_NAME` - название канала, которое можно получить от его создателя
+The _`master`_ branch as well as potentially _`feature branches`_ are used for development.  
+`Master` is assigned to the _`latest`_ version of Fabric.
 
-### Развертывание веб-приложения:
-Для удобства работы со смарт-контрактом Факторинг было разработано небольшое приложение, обеспечивающее формирование отчетности и работу с файлами. Поскольку, оно не относится к типовой конфигурации, то инструкция по развертыванию вынесена в отдельный раздел, а установка выполняется отдельной командой
 
-        docker-compose -f factor-network/docker/backend-compose.yaml up -d
-### Развертывание смарт-контрактов
+#### Currently issued branches are:
 
 - master(development)
 - snapshot-0.4-1.4
@@ -139,8 +127,3 @@ export CONSORTIUM_CONFIG=InviteConsortiumPolicy
     - use _fabric-starter-rest:snapshot-0.2-1.4_
 - snapshot-0.1-1.4
     - start snapshot branching
-
-```
-
-### Проверить работоспособность приложения
-Зайти на страницу http://hostname:5500/login
