@@ -39,10 +39,10 @@ function runCLIWithComposerOverrides() {
     fi
 
 #    if [ "${PORTS}" ]; then
-#        [ -n "$EXECUTE_BY_ORDERER" ] && portsComposeFile="-forderer-ports.yaml" || portsComposeFile="-fports.yaml"
+#        [ -n "$EXECUTE_BY_ORDERER" ] && portsComposeFile="-forderer-ports.yaml" || portsComposeFile="-fdocker-compose-ports.yaml"
 #    fi
 
-    [ -n "${COUCHDB}" ] && [ -z "$EXECUTE_BY_ORDERER" ] && couchDBComposeFile="-fcouchdb.yaml"
+    [ -n "${COUCHDB}" ] && [ -z "$EXECUTE_BY_ORDERER" ] && couchDBComposeFile="-fdocker-compose-couchdb.yaml"
     [ -n "${LDAP_ENABLED}" ] && [ -z "$EXECUTE_BY_ORDERER" ] && ldapComposeFile="-fdocker-compose-ldap.yaml"
 
     printInColor "1;32" "Execute: docker-compose -f ${composeTemplateFile} ${multihostComposeFile} ${couchDBComposeFile} ${ldapComposeFile} ${composeCommand} ${service} ${command:+bash -c} $command"
@@ -267,9 +267,114 @@ function callChaincode() {
 }
 
 function queryChaincode() {
-    callChaincode $@ query
+    channelName=${1:?Channel name must be specified}
+    chaincodeName=${2:?Chaincode name must be specified}
+    arguments=${3:-[]}
+    arguments="{\"Args\":$arguments}"
+    action=${4:-query}
+	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode query -n $chaincodeName -C $channelName -c '$arguments'"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode query -n $chaincodeName -C $channelName -c '$arguments' --tls --cafile /etc/hyperledger/crypto/orderer/tls/ca.crt"
 }
 
 function invokeChaincode() {
-    callChaincode $@ invoke
+    channelName=${1:?Channel name must be specified}
+    chaincodeName=${2:?Chaincode name must be specified}
+    arguments=${3:-[]}
+    arguments="{\"Args\":$arguments}"
+	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments'"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments' --tls --cafile /etc/hyperledger/crypto/orderer/tls/ca.crt"
+}
+
+function info() {
+    echo -e "************************************************************\n\033[1;33m${1}\033[m\n************************************************************"
+#    read -n1 -r -p "Press any key to continue" key
+#    echo
+}
+
+function copyDirToMachine() {
+    machine="$1.$DOMAIN"
+    src=$2
+    dest=$3
+
+    info "Copying ${src} to remote machine ${machine}:${dest}"
+    docker-machine ssh ${machine} sudo rm -rf ${dest}
+#    docker-machine ssh ${machine} sudo mkdir -p ${dest}
+    docker-machine scp -r ${src} ${machine}:${dest}
+}
+
+function copyFileToMachine() {
+    machine="$1.$DOMAIN"
+    src=$2
+    dest=$3
+
+    info "Copying ${src} to remote machine ${machine}:${dest}"
+    docker-machine scp ${src} ${machine}:${dest}
+}
+
+function connectMachine() {
+    machine="$1.$DOMAIN"
+
+    info "Connecting to remote machine $machine"
+    eval "$(docker-machine env ${machine})"
+    export ORG=${1}
+}
+
+function getMachineIp() {
+    machine="$1.$DOMAIN"
+    echo `(docker-machine ip ${machine})`
+}
+
+function setMachineWorkDir() {
+    machine="orderer.$DOMAIN"
+    export WORK_DIR=`(docker-machine ssh ${machine} pwd)`
+}
+
+function createDirInMachine() {
+    local machine=${1:?Org must be specified}.${DOMAIN}
+    local dir=${2:?Specify directory to create}
+    info "Create directory $dir on $machine"
+    docker-machine ssh ${machine} mkdir -p "$dir"
+}
+
+function createHostsFileInOrg() {
+    local org=${1:?Org must be specified}
+
+    cp hosts org_hosts
+    # remove entry of your own ip not to confuse docker and chaincode networking
+    sed -i.bak "/.*\.$org\.$DOMAIN*/d" org_hosts
+    createDirInMachine $org crypto-config
+    copyFileToMachine ${org} org_hosts crypto-config/hosts_${org}
+    rm org_hosts.bak org_hosts
+
+    # you may want to keep this hosts file to append to your own local /etc/hosts to simplify name resolution
+    # sudo cat hosts >> /etc/hosts
+}
+
+function createChannelAndAddOthers() {
+    c=$1
+
+    connectMachine ${first_org}
+
+    info "Creating channel $c by $ORG"
+    ./channel-create.sh ${c}
+
+    # First organization adds other organizations to the channel
+    for org in ${orgs}
+    do
+        if [[ ${org} = ${first_org} ]]; then
+            continue
+        fi
+        info "Adding $org to channel $c"
+        ./channel-add-org.sh ${c} ${org}
+    done
+
+    # All organizations join the channel
+    for org in ${orgs}
+    do
+        info "Joining $org to channel $c"
+        connectMachine ${org}
+        ./channel-join.sh ${c}
+    done
+
+    connectMachine ${first_org}
 }

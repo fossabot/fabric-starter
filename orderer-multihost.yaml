@@ -6,6 +6,14 @@ version: '3.7'
 
 services:
 
+  generate.orderer:
+    volumes:
+      - ${WORK_DIR:-/home/docker}/crypto-config:/etc/hyperledger/crypto-config
+
+  generate.post-orderer:
+    volumes:
+      - ${WORK_DIR:-/home/docker}/crypto-config:/etc/hyperledger/crypto-config
+
   orderer:
     environment:
       - FABRIC_LOGGING_SPEC=debug

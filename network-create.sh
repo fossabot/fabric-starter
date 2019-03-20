@@ -1,105 +1,90 @@
 #!/usr/bin/env bash
 
-#VM_NAME_PREFIX=${VM_NAME_PREFIX?:-Set environment variable VM_NAME_PREFIX to use for the VM names}
+source lib/util/util.sh
+source lib.sh
 
-function info() {
-    echo -e "************************************************************\n\033[1;33m${1}\033[m\n************************************************************"
-}
+setDocker_LocalRegistryEnv
 
 export MULTIHOST=true
 export DOMAIN=${DOMAIN-example.com}
+export CONSORTIUM_CONFIG=InviteConsortiumPolicy
+
+: ${CHANNEL:=common}
+: ${CHAINCODE_INSTALL_ARGS:=reference}
+: ${CHAINCODE_INSTANTIATE_ARGS:=common reference}
+: ${DOCKER_COMPOSE_ARGS:= -f docker-compose.yaml -f docker-compose-couchdb.yaml -f multihost.yaml -f docker-compose-ports.yaml}
+: ${CHAINCODE_HOME:=chaincode}
+: ${WEBAPP_HOME:=webapp}
+: ${MIDDLEWARE_HOME:=middleware}
 
 orgs=${@:-org1}
 first_org=${1:-org1}
 
-channel=${CHANNEL:-common}
-chaincode_install_args=${CHAINCODE_INSTALL_ARGS:-reference}
-chaincode_instantiate_args=${CHAINCODE_INSTANTIATE_ARGS:-common reference}
-docker_compose_args=${DOCKER_COMPOSE_ARGS:- -f docker-compose.yaml -f couchdb.yaml -f multihost.yaml -f ports.yaml}
+# Set WORK_DIR as home dir on remote machine
+setMachineWorkDir
 
 # Collect IPs of remote hosts into a hosts file to copy to all hosts to be used as /etc/hosts to resolve all names
-ordererMachineName=${VM_NAME_PREFIX}orderer
-orderer_ip=`(docker-machine ip ${ordererMachineName})`
-hosts="127.0.0.1 localhost localhost.local\n${orderer_ip} www.${DOMAIN}\n${orderer_ip} orderer.${DOMAIN}"
+ip=$(getMachineIp orderer)
+hosts="# created by network-create.sh\n${ip} www.${DOMAIN} orderer.${DOMAIN}"
 
-export WORK_DIR=`(docker-machine ssh ${ordererMachineName} pwd)`
+# Create member organizations host machines
 
-## Create member organizations host machines
-
+# Collect ip into the hosts file
 for org in ${orgs}
 do
-    # collect ip into the hosts file
-    orgMachineName=${VM_NAME_PREFIX}${org}
-    ip=`(docker-machine ip ${orgMachineName})`
-    hosts="${hosts}\n${ip} www.${org}.${DOMAIN}\n${ip} peer0.${org}.${DOMAIN}"
+    ip=$(getMachineIp ${org})
+    hosts="${hosts}\n${ip} www.${org}.${DOMAIN} peer0.${org}.${DOMAIN}"
 done
 
 echo -e "${hosts}" > hosts
 
-info "Using WORK_DIR=$WORK_DIR on remote host; CHAINCODE_HOME=$CHAINCODE_HOME, WEBAPP_HOME=$WEBAPP_HOME on local host. Hosts file:"
+info "Building network for $DOMAIN using WORK_DIR=$WORK_DIR on remote machines, CHAINCODE_HOME=$CHAINCODE_HOME, WEBAPP_HOME=$WEBAPP_HOME on local host. Hosts file:"
 cat hosts
 
 # Copy generated hosts file to the host machines
 
-docker-machine scp hosts ${ordererMachineName}:hosts
+#docker-machine scp hosts ${ordererMachineName}:hosts
+copyFileToMachine orderer hosts hosts
 
-for org in ${orgs}
-do
-    cp hosts org_hosts
-    # remove entry of your own ip not to confuse docker and chaincode networking
-    sed -i.bak "/.*\.$org\.$DOMAIN*/d" org_hosts
-    orgMachineName=${VM_NAME_PREFIX}${org}
-    docker-machine scp org_hosts ${orgMachineName}:hosts
-    rm org_hosts.bak org_hosts
-done
-
-# you may want to keep this hosts file to append to your own local /etc/hosts to simplify name resolution
-# rm hosts
-# sudo cat hosts >> /etc/hosts
 
 # Create orderer organization
 
-info "Creating orderer organization for $DOMAIN"
-docker-machine scp -r templates ${ordererMachineName}:templates
-eval "$(docker-machine env ${ordererMachineName})"
+info "Creating orderer organization"
+
+copyDirToMachine orderer templates ${WORK_DIR}/templates
+copyDirToMachine orderer container-scripts ${WORK_DIR}/container-scripts
+
+connectMachine orderer
 ./clean.sh
-./generate-orderer.sh
 docker-compose -f docker-compose-orderer.yaml -f orderer-multihost.yaml up -d
 
 # Create member organizations
 
 for org in ${orgs}
 do
-    export ORG=${org}
-    orgMachineName=${VM_NAME_PREFIX}${org}
-    dest=${WORK_DIR}/templates
-    info "Copying templates to remote host ${orgMachineName}:${dest}"
-    docker-machine ssh ${orgMachineName} rm -rf ${dest}
-    docker-machine scp -r templates ${orgMachineName}:${dest}
 
-    dest=${WORK_DIR}/chaincode
-    chaincode_home=${CHAINCODE_HOME:-chaincode}
-    info "Copying $chaincode_home to remote host ${orgMachineName}:${dest}"
-    docker-machine ssh ${orgMachineName} rm -rf ${dest}
-    docker-machine scp -r ${chaincode_home} ${orgMachineName}:${dest}
+    info "Copying custom chaincodes and middleware to remote machine ${machine}"
+    copyDirToMachine ${org} templates ${WORK_DIR}/templates
+    copyDirToMachine ${org} ${CHAINCODE_HOME} ${WORK_DIR}/chaincode
+    copyDirToMachine ${org} ${WEBAPP_HOME} ${WORK_DIR}/webapp
+    copyDirToMachine ${org} ${MIDDLEWARE_HOME} ${WORK_DIR}/middleware
 
-    dest=${WORK_DIR}/webapp
-    webapp_home=${WEBAPP_HOME:-webapp}
-    info "Copying $webapp_home to remote host ${ORG}:${dest}"
-    docker-machine ssh ${orgMachineName} rm -rf ${dest}
-    docker-machine scp -r ${webapp_home} ${orgMachineName}:${dest}
+    info "Copying dns chaincode and middleware to remote machine ${machine}"
+    machine="$org.$DOMAIN"
+    docker-machine scp -r chaincode ${machine}:${WORK_DIR}
+    docker-machine scp middleware/dns.js ${machine}:${WORK_DIR}/middleware/dns.js
+    copyDirToMachine ${org} container-scripts ${WORK_DIR}/container-scripts
 
-    eval "$(docker-machine env ${orgMachineName})"
-    info "Creating member organization $ORG"
+    info "Creating member organization $org"
+    connectMachine ${org}
     ./clean.sh
-    ./generate-peer.sh
-    docker-compose ${docker_compose_args} up -d
-    unset ORG
+    createHostsFileInOrg $org
+    docker-compose ${DOCKER_COMPOSE_ARGS} up -d
 done
 
 # Add member organizations to the consortium
 
-eval "$(docker-machine env ${ordererMachineName})"
+connectMachine orderer
 
 for org in ${orgs}
 do
@@ -107,39 +92,65 @@ do
     ./consortium-add-org.sh ${org}
 done
 
-# First organization creates the channel
+# First organization creates application channel
 
-eval "$(docker-machine env ${VM_NAME_PREFIX}${first_org})"
-export ORG=${first_org}
+createChannelAndAddOthers ${CHANNEL}
 
-info "Creating channel ${channel} by $ORG"
-./channel-create.sh ${channel}
-./channel-join.sh ${channel}
+# First organization creates common channel if it's not the default application channel
 
-# First organization adds other organizations to the channel
+if [[ ${CHANNEL} != common ]]; then
+    createChannelAndAddOthers common
+fi
 
-for org in "${@:2}"
+# All organizations install application chaincode
+
+for org in ${orgs}
 do
-    info "Adding $org to channel ${channel}"
-    ./channel-add-org.sh ${channel} ${org}
-
+    connectMachine ${org}
+    info "Installing chaincode to $ORG: $CHAINCODE_INSTALL_ARGS"
+    ./chaincode-install.sh ${CHAINCODE_INSTALL_ARGS}
 done
 
-# First organization creates the chaincode
+# First organization instantiates application chaincode
 
-info "Creating chaincode by $ORG: ${chaincode_install_args} ${chaincode_instantiate_args}"
-./chaincode-install.sh ${chaincode_install_args}
-./chaincode-instantiate.sh ${chaincode_instantiate_args}
+connectMachine ${first_org}
 
-# Other organizations join the channel
+info "Instantiating application chaincode by $ORG: $CHAINCODE_INSTANTIATE_ARGS"
+#./chaincode-instantiate.sh ${CHAINCODE_INSTANTIATE_ARGS}
 
-for org in "${@:2}"
+# All organizations install dns chaincode from local dir .../fabric-starter/chaincode
+
+unset CHAINCODE_INSTALL_ARGS
+for org in ${orgs}
 do
-    export ORG=${org}
-    orgMachineName=${VM_NAME_PREFIX}${org}
-    eval "$(docker-machine env ${orgMachineName})"
-    info "Joining $org to channel ${channel}"
-    ./channel-join.sh ${channel}
-    ./chaincode-install.sh ${chaincode_install_args}
-    unset ORG
+    connectMachine ${org}
+    info "Installing chaincode to $ORG: dns"
+    ./chaincode-install.sh dns
 done
+
+# First organization instantiates dns chaincode
+
+connectMachine ${first_org}
+
+info "Instantiating dns chaincode by $ORG"
+./chaincode-instantiate.sh common dns
+
+info "Waiting for dns chaincode to build"
+sleep 20
+
+# First organization creates entries in dns chaincode
+
+ip=$(getMachineIp orderer)
+./chaincode-invoke.sh common dns "[\"put\",\"$ip\",\"www.${DOMAIN} orderer.${DOMAIN}\"]"
+
+for org in ${orgs}
+do
+    ip=$(getMachineIp ${org})
+    ./chaincode-invoke.sh common dns "[\"put\",\"$ip\",\"www.${org}.${DOMAIN} peer0.${org}.${DOMAIN}\"]"
+done
+
+sleep 10
+
+./smoke-test.sh ${first_org}
+
+echo

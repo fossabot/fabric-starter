@@ -25,7 +25,14 @@
 
 ### Подключение к сети
 
-Данный этап является общим для всех решений с использованием HyperLedger Fabric. Для успешного функционирования узла предприятия и взаимодействия с другими узлами необходимо выполнить описанные ниже действия
+- [Installation.](#install)
+- [Network with 1 organization (and orderer) for development.](#example1org)
+- [Several organizations on one (local) host in multiple docker containers.](#example3org)
+- [REST API to query and invoke chaincodes.](#restapi)
+- [Getting closer to production. Multiple hosts deployment with `docker-machine`. Deployment to clouds.](#multihost)
+- [Join to an External Network](#joinexternal)
+- [Consortium Types. Invite-based and Majority-based Governance](#consortiumtypes)
+- [Development\Release cycle](#releasecycle)
 
 #### Инфраструктура
 
@@ -54,94 +61,55 @@
 104.40.205.94 www.factoring
 104.40.205.94 orderer.factoring
 
-89.175.56.229 www.sbf
-89.175.56.229 peer0.sbf.factoring
-89.175.56.229 peer1.sbf.factoring
-```
+<a name="example1org"></a>
+## Create a network with 1 organization for development
+See [One Org Network](docs/network-one-org.md)
 
-4. Настроить DNS для контейнеров:
-```bash
-sudo apt install dnsmasq
-```
 
-Проверить статус службы:
 
-```bash
-systemctl status dnsmasq
-```
+<a name="example3org"></a>
+## Create a local network of 3 organizations
+See [Three local Orgs Network](docs/network-three-org.md)
 
-Найти адрес шлюза, который предоставляет Docker для внутренней подсети
-```
-ip addr | grep docker0
-```
 
-*Пример результата, фактические результаты могут отличаться, нужно использовать фактический адрес*:
-  **docker0**: <BROADCAST,MULTICAST,UP,LOWER_UP>
-  ...
-    inet **`172.17.0.1`**/16
+<a name="restapi"></a>
+## Use REST API to query and invoke chaincodes
+See [Use REST Api](docs/rest-api.md)
 
-Добавить адрес в конфигурационный файл
-
-```bash
-sudo nano /etc/docker/daemon.json
-```
-
-Пример
-
-```javascript
-{
-    "dns": ["172.17.0.1"]
-}
-```
-
-Перезапустить службу Docker
-
-```bash
-sudo service docker restart
-```
+<a name="multihost"></a>
+## Multi host deployment
+See [Multi host deployment](docs/multihost.md)
 
 Создать конфигурационный файл для bridge сети
 
+<a name="joinexternal"></a>
+## Join to an External Network
+For `invite-based` blockchain-networks (see next chapter) new organization can be added to the consortium by a member of this network.
+The new organization need to obtain the BOOTSRAP_IP (currently it's the IP of the _orderer_ node) and deploy its own node with this IP.  
+```bash
+export BOOTSTRAP_IP=192.168.0.1
+#ORG=... DOMAIN=... docker-compose up
 ```
-sudo mkdir -p /etc/NetworkManager/dnsmasq.d
-sudo nano /etc/NetworkManager/dnsmasq.d/docker-bridge.conf
-```
+Then the new organization passes the ip address of the newly deployed node to the network's member and this member adds the organization to Consortium by it's administration dashboard.
+After that the new organization can create own channels, add other organizations to the own channels and even invite more organizations to the network itself.     
 
-Добавить в него те же самые адреса:
+<a name="consortiumtypes"></a>
+## Consortium Types. Invite-based and Majority-based Governance
 
-```
-listen-address=172.17.0.1
-```
+So now our network can be governed by itself (or to say it right by the netwrk's members). 
+The first type of network-governance is `Invite-based`. With this type of deployment 
+any organization ((and not a central system administrator)) - member of the blockchain network can add new organization to consortium.
 
-Перезапустить службу:
+To deploy such type of network export environment variable
+```bash
+export CONSORTIUM_CONFIG=InviteConsortiumPolicy
+``` 
 
-```
-sudo service dnsmasq restart    
-```
+`Majority` type of governance is coming.       
 
-#### Развертывание контейнеров типовой конфигурации
 
-1. Войти в консоль сервера
-2. Клонировать этот репозиторий
-3. Перейти в созданную в результате клонирования папку
-4. Выполнить команды
-
-       EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
-       EXPORT DOMAIN="factoring"
-       EXPORT CHAINCODE_VERSION = #версия смарт-контракта, по умолчанию 1.0, желательно уточнять у владельца канала
-       ./generate-peer.sh
-       docker-compose -f docker-compose.yaml -f ports.yaml up -d
-5. В результате должны появиться контейнеры со следующими именами:
-
-    * peer0.`org`.`domain` - Узел участника
-    * peer1.`org`.`domain` - Узел участника
-    * api.`org`.`domain` - API сервер
-    * ca.`org`.`domain` - Удостоверяющий центр
-    * cli.`org`.`domain` - Сервер для выполнения служебных команд
-    * www.`org`.`domain` - Сервер Nginx
-    * backend.`org`.`domain` - Сервисный слой и веб-приложение
-
-### Присоединение к каналам
+<a name="releasecycle"></a>
+## Releases\Snapshots cycle
 
  После настройки и проверки сетевого соединения, необходимо обеспечить включение организации (т.е. ее публичного ключа) в список доверенных участников. Для участия в сети необходимо явным образом  выраженное согласие других участников, которое с технической точки зрения выражается в следующем:
 
@@ -160,9 +128,17 @@ sudo service dnsmasq restart
         docker-compose -f factor-network/docker/backend-compose.yaml up -d
 ### Развертывание смарт-контрактов
 
-```bash
-export CHAINCODE_VERSION=1.0
-./chaincode-install.sh factor_scala $CHAINCODE_VERSION /opt/chaincode/java/factoring  java
+- master(development)
+- snapshot-0.4-1.4
+    - auto-generate crypto configuration
+    - Invite type consortium
+    - BOOTSTRAP_IP for new node joining
+- snapshot-0.3-1.4
+    - use _fabric-starter-rest:snapshot-0.3-1.4_
+- snapshot-0.2-1.4
+    - use _fabric-starter-rest:snapshot-0.2-1.4_
+- snapshot-0.1-1.4
+    - start snapshot branching
 
 ```
 

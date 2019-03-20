@@ -12,7 +12,7 @@ first_org=${1:-org1}
 channel=${CHANNEL:-common}
 chaincode_install_args=${CHAINCODE_INSTALL_ARGS:-reference}
 chaincode_instantiate_args=${CHAINCODE_INSTANTIATE_ARGS:-common reference}
-docker_compose_args=${DOCKER_COMPOSE_ARGS:- -f docker-compose.yaml -f couchdb.yaml -f docker-compose-api-port.yaml}
+docker_compose_args=${DOCKER_COMPOSE_ARGS:- -f docker-compose.yaml -f docker-compose-couchdb.yaml -f docker-compose-api-port.yaml}
 
 # Clean up. Remove all containers, delete local crypto material
 
@@ -23,7 +23,6 @@ unset ORG COMPOSE_PROJECT_NAME
 # Create orderer organization
 
 info "Creating orderer organization for $DOMAIN"
-./generate-orderer.sh
 docker-compose -f docker-compose-orderer.yaml up -d
 
 # Create member organizations
@@ -35,7 +34,6 @@ do
     export ORG=${org} API_PORT=${api_port}
     export COMPOSE_PROJECT_NAME=${ORG}
     info "Creating member organization $ORG with api $API_PORT"
-    ./generate-peer.sh
     docker-compose ${docker_compose_args} up -d
     api_port=$((api_port + 1))
     unset ORG COMPOSE_PROJECT_NAME API_PORT
