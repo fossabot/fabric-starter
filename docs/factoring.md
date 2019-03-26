@@ -121,6 +121,10 @@ sudo service dnsmasq restart
         ./clean.sh
         docker system prune
         rm -rf crypto-config
+        ./clean.sh
+
+Для очистки и развертывания Peer можно использовать готовый скрипт: factor-network/clean-install.sh
+
 5. Задать переменную окружения с названием Сети:
 
         EXPORT DOMAIN="factoring"
