@@ -36,8 +36,7 @@ object Main extends ContractBase with App
   @ContractInit
   def init(context: ContractContext, factor: Organization, buyer: Organization): Unit = {
 
-    context.store.list[Organization].map(_.key) foreach context.store.del
-
+    context.store.list[Organization].foreach(t => context.store.del[Organization](t.key))
     context.store.put(factor.mspId, factor)
     context.store.put(buyer.mspId, buyer)
   }
