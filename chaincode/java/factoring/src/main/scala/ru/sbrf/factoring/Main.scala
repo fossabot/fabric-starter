@@ -25,12 +25,12 @@ object Main extends ContractBase with App
   LoggerFactory
     .getLogger(Logger.ROOT_LOGGER_NAME)
     .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.TRACE)
+    .setLevel(ch.qos.logback.classic.Level.ERROR)
 
   LoggerFactory
     .getLogger(classOf[ContractBase].getPackage.getName)
     .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.TRACE)
+    .setLevel(ch.qos.logback.classic.Level.ERROR)
 
 
   @ContractInit
