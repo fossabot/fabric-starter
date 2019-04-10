@@ -94,6 +94,7 @@ services:
     - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/crypto/peer/tls/server.crt
     - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/crypto/peer/tls/ca.crt
     - CORE_CHAINCODE_JAVA_RUNTIME=apolubelov/fabric-scalaenv
+    - CORE_CHAINCODE_EXECUTETIMEOUT=300s
 
     volumes:
     - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/peers/peer0.${ORG:-org1}.${DOMAIN:-example.com}/:/etc/hyperledger/crypto/peer
@@ -188,7 +189,7 @@ services:
       - ENROLL_ID
       - ENROLL_SECRET
       - P=${PWD}
-      - HFC_LOGGING={"debug":"console","info":"console"}
+      - HFC_LOGGING=${HFC_LOGGING}
 # to troubleshoot grpc issues https://github.com/grpc/grpc/blob/master/doc/environment_variables.md
 #      - GRPC_VERBOSITY=DEBUG
 #      - GRPC_TRACE=connectivity_state,health_check_client,timer,timer_check,tcp,api
