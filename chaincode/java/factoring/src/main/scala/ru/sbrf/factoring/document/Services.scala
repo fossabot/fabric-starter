@@ -15,8 +15,23 @@ trait Services {
 
   @ContractOperation
   def createDocuments(context: ContractContext, documents: Array[Document]): ContractResponse = {
+    val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    val distinctDocs = documents.toList.groupBy(_.id)
+      .map(x => {
+        x._2 match {
+          case head :: Nil =>
+            logger.trace(s"Found single doc $head")
+            head
+          case xs: List[Document] =>
+            logger.trace(s"found list of length ${xs.length}")
+            val s = xs.foldLeft(0.toDouble)((acc, d) => acc + d.totalGross)
+            logger.trace(s"total amount = $s")
+            xs.head.copy(totalGross = s)
+        }
+      })
 
-    val orders: Seq[Order] = documents map getUpdatedOrder(context)
+      val orders = distinctDocs.map(getUpdatedOrder(context))
+    //    val orders: Seq[Order] = documents map getUpdatedOrder(context)
 
     for (order <- orders) {
 
@@ -25,7 +40,7 @@ trait Services {
 
       val key: Key = new Key(
         dateSegmentKey, order.id)
-      val logger: Logger = LoggerFactory.getLogger(this.getClass)
+      //      val logger: Logger = LoggerFactory.getLogger(this.getClass)
       logger.trace(s"documentDate = ${doc.documentDate}, dateSegmentKey = $dateSegmentKey")
       context.store.put[Order](key, order)
     }
