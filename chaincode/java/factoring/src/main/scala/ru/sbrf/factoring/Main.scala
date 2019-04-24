@@ -2,8 +2,10 @@ package ru.sbrf.factoring
 
 import com.github.apolubelov.fabric.contract._
 import com.github.apolubelov.fabric.contract.annotation.ContractInit
+import com.github.apolubelov.fabric.contract.store.Key
+import org.hyperledger.fabric.shim.ledger.CompositeKey
 import org.slf4j.{Logger, LoggerFactory}
-import ru.sbrf.factoring.assets.Organization
+import ru.sbrf.factoring.assets.{Order, Organization}
 
 /*
  * This is just a version of
@@ -37,6 +39,13 @@ object Main extends ContractBase with App
   def init(context: ContractContext, factor: Organization, buyer: Organization): Unit = {
 
     context.store.list[Organization].foreach(t => context.store.del[Organization](t.key))
+    context.store.list[Order].foreach(t => {
+      //      context.store.del[Order](Key(t.key.split(CompositeKey.NAMESPACE):_*))
+      val Array(first, second) = t.key.split(CompositeKey.NAMESPACE)
+      val k = Key(first, second)
+      context.store.del(k, classOf[Order])
+    }
+    )
     context.store.put(factor.mspId, factor)
     context.store.put(buyer.mspId, buyer)
   }
