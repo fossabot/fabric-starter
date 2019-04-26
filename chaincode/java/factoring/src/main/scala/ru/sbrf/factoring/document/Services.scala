@@ -16,7 +16,7 @@ trait Services {
   @ContractOperation
   def createDocuments(context: ContractContext, documents: Array[Document]): ContractResponse = {
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    val distinctDocs = documents.toList.groupBy(_.id)
+    val distinctDocs = documents.toList.groupBy(_.orderId)
       .map(x => {
         x._2 match {
           case head :: Nil =>
