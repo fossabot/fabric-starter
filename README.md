@@ -91,7 +91,16 @@ any organization ((and not a central system administrator)) - member of the bloc
 To deploy such type of network export environment variable
 ```bash
 export CONSORTIUM_CONFIG=InviteConsortiumPolicy
-``` 
+```
+Start orderer:
+```bash
+WWW_PORT=81 WORK_DIR=./ docker-compose -f docker-compose-orderer.yaml -f orderer-multihost.yaml up -d
+```
+
+Then start an organization
+```bash
+MY_IP=192.168.99.yy BOOTSTRAP_IP=192.168.99.xx ORG=org1 MULTIHOST=true WORK_DIR=./ docker-compose -f docker-compose.yaml -f multihost.yaml up -d 
+```
 
 `Majority` type of governance is coming.       
 
@@ -117,6 +126,10 @@ The _`master`_ branch as well as potentially _`feature branches`_ are used for d
 #### Currently issued branches are:
 
 - master(development)
+- snapshot-0.5-1.4
+    - new org auto connect for invite type consortium
+    - new orgs dns register functionality
+    - use _fabric-starter-rest:snapshot-0.4-1.4_
 - snapshot-0.4-1.4
     - auto-generate crypto configuration
     - Invite type consortium
