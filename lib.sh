@@ -89,7 +89,7 @@ function envSubst() {
 
 function downloadMSP() {
     org=$1
-    port={$2:-80}
+    port=${2:-80}
     if [ -n "$EXECUTE_BY_ORDERER" ]; then
         mspSubPath="$org.$DOMAIN"
         orgSubPath="peerOrganizations"
