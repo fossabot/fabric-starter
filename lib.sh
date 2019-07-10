@@ -89,16 +89,16 @@ function envSubst() {
 
 function downloadMSP() {
     org=$1
-
+    port={$2:-80}
     if [ -n "$EXECUTE_BY_ORDERER" ]; then
         mspSubPath="$org.$DOMAIN"
         orgSubPath="peerOrganizations"
     else
         [ -n "$org" ] && mspSubPath="$org.$DOMAIN" orgSubPath="peerOrganizations" || mspSubPath="$DOMAIN" orgSubPath="ordererOrganizations"
     fi
-    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/admincerts http://www.${mspSubPath}/msp/admincerts/Admin@${mspSubPath}-cert.pem"
-    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/cacerts http://www.${mspSubPath}/msp/cacerts/ca.${mspSubPath}-cert.pem"
-    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/tlscacerts http://www.${mspSubPath}/msp/tlscacerts/tlsca.${mspSubPath}-cert.pem"
+    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/admincerts http://www.${mspSubPath}:${port}/msp/admincerts/Admin@${mspSubPath}-cert.pem"
+    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/cacerts http://www.${mspSubPath}:${port}/msp/cacerts/ca.${mspSubPath}-cert.pem"
+    runCLI "wget ${WGET_OPTS} --directory-prefix crypto-config/${orgSubPath}/${mspSubPath}/msp/tlscacerts http://www.${mspSubPath}:${port}/msp/tlscacerts/tlsca.${mspSubPath}-cert.pem"
     [ -z "$EXECUTE_BY_ORDERER" ] && runCLI "mkdir -p crypto-config/${orgSubPath}/${mspSubPath}/msp/tls/ \
     && cp crypto-config/${orgSubPath}/${mspSubPath}/msp/tlscacerts/tlsca.${mspSubPath}-cert.pem crypto-config/${orgSubPath}/${mspSubPath}/msp/tls/ca.crt"
 }
@@ -182,7 +182,7 @@ function addOrgToChannel() {
     org=${2:?"New Org must be specified"}
 
     echo " >> Add new org '$org' to channel $channel"
-    updateChannelConfig $channel $org ./templates/NewOrg.json "$(certificationsToEnv $org)"
+    updateChannelConfig $channel $org ./templates/NewOrg.json "export PORT=${3} && $(certificationsToEnv $org)"
 }
 
 function joinChannel() {
