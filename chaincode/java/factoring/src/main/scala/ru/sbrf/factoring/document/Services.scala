@@ -2,49 +2,65 @@ package ru.sbrf.factoring.document
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneId}
+import java.util
 
 import com.github.apolubelov.fabric.contract.annotation.ContractOperation
 import com.github.apolubelov.fabric.contract.store.Key
-import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
+import com.github.apolubelov.fabric.contract.{ContractCodecs, ContractContext, ContractResponse, Error, Success}
 import org.slf4j.{Logger, LoggerFactory}
 import ru.sbrf.factoring.Config
 import ru.sbrf.factoring.assets.{Document, Order, Organization}
 
+import scala.collection.JavaConverters._
+
 trait Services {
 
 
+  import com.github.apolubelov.fabric.contract.ContractResponseConversions._
+
   @ContractOperation
-  def createDocuments(context: ContractContext, documents: Array[Document]): ContractResponse = {
+  def createDocuments(context: ContractContext, collectionId: String): ContractResponse = {
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    val distinctDocs = documents.toList.groupBy(_.orderId)
-      .map(x => {
-        x._2 match {
-          case head :: Nil =>
-            logger.trace(s"Found single doc $head")
-            head
-          case xs: List[Document] =>
-            logger.trace(s"found list of length ${xs.length}")
-            val s = xs.foldLeft(0.toDouble)((acc, d) => acc + d.totalGross)
-            logger.trace(s"total amount = $s")
-            xs.head.copy(totalGross = s)
+
+
+    val codecs = ContractCodecs()
+    logger.error("!getTransient: " + context.lowLevelApi.getTransient.toString)
+    logger.error("!data: " + new String(context.lowLevelApi.getTransient.get("data")))
+    Option(context.lowLevelApi.getTransient.get("data"))
+      .flatMap { el => Option(codecs.ledgerCodec.decode(el, classOf[Array[Document]])) }
+      .toRight("no documents found in transient ")
+      .map { documents =>
+        val distinctDocs = documents.toList.groupBy(_.orderId) //If there are two rows with the same orderId,
+          // then merge them with the amount equal to sum
+          .map(x => {
+          x._2 match {
+            case head :: Nil =>
+              logger.trace(s"Found single doc $head")
+              head
+            case xs: List[Document] =>
+              logger.trace(s"found list of length ${xs.length}")
+              val s = xs.foldLeft(0.toDouble)((acc, d) => acc + d.totalGross)
+              logger.trace(s"total amount = $s")
+              xs.head.copy(totalGross = s)
+          }
+        })
+
+        val orders = distinctDocs.map(getUpdatedOrder(context))
+
+        for (order <- orders) {
+
+          val doc = order.documents.head
+          val dateSegmentKey: String = calcSegment(doc.documentDate)
+
+          val key: Key = new Key(
+            dateSegmentKey, order.id)
+          logger.trace(s"documentDate = ${doc.documentDate}, dateSegmentKey = $dateSegmentKey")
+          context.privateStore(collectionId).put[Order](key, order)
         }
-      })
+        orders.toArray
+      }
 
-      val orders = distinctDocs.map(getUpdatedOrder(context))
-    //    val orders: Seq[Order] = documents map getUpdatedOrder(context)
 
-    for (order <- orders) {
-
-      val doc = order.documents.head
-      val dateSegmentKey: String = calcSegment(doc.documentDate)
-
-      val key: Key = new Key(
-        dateSegmentKey, order.id)
-      //      val logger: Logger = LoggerFactory.getLogger(this.getClass)
-      logger.trace(s"documentDate = ${doc.documentDate}, dateSegmentKey = $dateSegmentKey")
-      context.store.put[Order](key, order)
-    }
-    Success(orders.toArray)
   }
 
 

@@ -34,8 +34,8 @@ trait Services {
   }
 
   @ContractOperation
-  def listOrders(context: ContractContext): ContractResponse = {
-    val orders: Array[Order] = context.store.list[Order]
+  def listOrders(context: ContractContext,collectionId:String): ContractResponse = {
+    val orders: Array[Order] = context.privateStore(collectionId).list[Order]
       .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(orders)
@@ -60,7 +60,7 @@ trait Services {
   //  }
 
   @ContractOperation
-  def listOrdersWithParams(context: ContractContext, queryParams: OrdersQueryParams): ContractResponse = {
+  def listOrdersWithParams(context: ContractContext, collectionId:String, queryParams: OrdersQueryParams): ContractResponse = {
 
 
     //    def checkBoundaries(o: Order): Boolean = {
@@ -87,7 +87,7 @@ trait Services {
     keys foreach logger.trace
     val ordersFiltered = keys
       .flatMap(key => {
-        context.store.list[Order](key)
+        context.privateStore(collectionId).list[Order](key)
       })
       .map(_.value)
       .filter(order => !queryParams.unmatched || (order.confirmed && order.received))
@@ -116,7 +116,7 @@ trait Services {
   //  def updateSingleOrder(context: ContractContext, document: Document): ContractResponse = {
   //
   //    updatedOrder(context)(document) map { order =>
-  //      val primaryKey = context.lowLevelApi.createCompositeKey("ContractOrder", order.contractID, order.id)
+//        val primaryKey = context.lowLevelApi.createCompositeKey("ContractOrder", order.contractID, order.id)
   //      context.store.put[Order](primaryKey.toString, order)
   //      Success(order.id)
   //    } getOrElse Error(s"contract ${document.contractID} not found")
