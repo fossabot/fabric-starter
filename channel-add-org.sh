@@ -6,7 +6,7 @@ exampleMsg="$0 common org2"
 IFS=
 channelName=${1:?`printUsage "$usageMsg" "$exampleMsg"`}
 newOrg=${2:?`printUsage "$usageMsg" "$exampleMsg"`}
-port1=${3}
-port2=${4}
+port1=${3:-80}
+port2=${4:-7051}
 downloadMSP ${newOrg} ${port1}
-addOrgToChannel $channelName $newOrg ${port2}
+addOrgToChannel $channelName $newOrg $port2
