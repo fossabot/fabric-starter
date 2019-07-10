@@ -86,6 +86,7 @@ services:
     - CORE_PEER_ID=peer0.${ORG:-org1}.${DOMAIN:-example.com}
     - CORE_PEER_LOCALMSPID=${ORG:-org1}
     - CORE_PEER_ADDRESS=peer0.${ORG:-org1}.${DOMAIN:-example.com}:${PEER0_PORT:-7051}
+    - CORE_PEER_LISTENADDRESS=peer0.${ORG:-org1}.${DOMAIN:-example.com}:${PEER0_PORT:-7051}
     - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
     # the following setting starts chaincode containers on the same
     # bridge network as the peers
