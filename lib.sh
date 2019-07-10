@@ -190,7 +190,7 @@ function joinChannel() {
 
     echo "Join $ORG to channel $channel"
     fetchChannelConfigBlock $channel "0"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer channel join -b crypto-config/configtx/$channel.pb"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer channel join -b crypto-config/configtx/$channel.pb"
 }
 
 function updateAnchorPeers() {
@@ -206,14 +206,14 @@ function installChaincode() {
     chaincodeVersion=${4:-1.0}
 
     echo "Install chaincode $chaincodeName  $path $lang $version"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode install -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $lang"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode install -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $lang"
 }
 
 function installChaincodePackage() {
     chaincodeName=${1:?Chaincode package must be specified}
 
     echo "Install chaincode package $chaincodeName"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode install $chaincodeName"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode install $chaincodeName"
 }
 
 function createChaincodePackage() {
@@ -224,7 +224,7 @@ function createChaincodePackage() {
     chaincodePackageName=${5:?Chaincode PackageName must be specified}
 
     echo "Packaging chaincode $chaincodePath to $chaincodeName"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode package -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $chaincodeLang $chaincodePackageName"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode package -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $chaincodeLang $chaincodePackageName"
 }
 
 function instantiateChaincode() {
@@ -242,7 +242,7 @@ function instantiateChaincode() {
 
     arguments="{\"Args\":$initArguments}"
     echo "Instantiate chaincode $channelName $chaincodeName '$initArguments' $chaincodeVersion $privateCollectionPath $endorsementPolicy"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode instantiate -n $chaincodeName -v ${chaincodeVersion} -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName ${ORDERER_TLSCA_CERT_OPTS} $privateCollectionParam $endorsementPolicyParam"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode instantiate -n $chaincodeName -v ${chaincodeVersion} -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName ${ORDERER_TLSCA_CERT_OPTS} $privateCollectionParam $endorsementPolicyParam"
 }
 
 
@@ -258,7 +258,7 @@ function upgradeChaincode() {
 
     arguments="{\"Args\":$initArguments}"
 
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode upgrade -n $chaincodeName -v $chaincodeVersion -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName '$policy' ${ORDERER_TLSCA_CERT_OPTS}"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode upgrade -n $chaincodeName -v $chaincodeVersion -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName '$policy' ${ORDERER_TLSCA_CERT_OPTS}"
 }
 
 function callChaincode() {
@@ -267,8 +267,8 @@ function callChaincode() {
     arguments=${3:-[]}
     arguments="{\"Args\":$arguments}"
     action=${4:-query}
-	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode $action -n $chaincodeName -C $channelName -c '$arguments'"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode $action -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
+	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode $action -n $chaincodeName -C $channelName -c '$arguments'"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode $action -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
 }
 
 function queryChaincode() {
@@ -277,8 +277,8 @@ function queryChaincode() {
     arguments=${3:-[]}
     arguments="{\"Args\":$arguments}"
     action=${4:-query}
-	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode query -n $chaincodeName -C $channelName -c '$arguments'"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode query -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
+	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode query -n $chaincodeName -C $channelName -c '$arguments'"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode query -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
 }
 
 function invokeChaincode() {
@@ -286,8 +286,8 @@ function invokeChaincode() {
     chaincodeName=${2:?Chaincode name must be specified}
     arguments=${3:-[]}
     arguments="{\"Args\":$arguments}"
-	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments'"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:7051 peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
+	echo "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments'"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode invoke -n $chaincodeName -C $channelName -c '$arguments' ${ORDERER_TLSCA_CERT_OPTS}"
 }
 
 function info() {
