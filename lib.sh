@@ -180,9 +180,9 @@ function updateChannelModificationPolicy() {
 function addOrgToChannel() {
     channel=${1:?"Channel must be specified"}
     org=${2:?"New Org must be specified"}
-
+    port=${3:7051}
     echo " >> Add new org '$org' to channel $channel"
-    updateChannelConfig $channel $org ./templates/NewOrg.json "export PORT=${3} && $(certificationsToEnv $org)"
+    updateChannelConfig $channel $org ./templates/NewOrg.json "export PORT=${port} && $(certificationsToEnv $org)"
 }
 
 function joinChannel() {
