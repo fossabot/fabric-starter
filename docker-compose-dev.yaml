@@ -16,8 +16,11 @@ services:
 #    - ${PEER0_EVENT_PORT:-7053}:7053
 
   api:
+    volumes: 
+      - /Users/vladimirpopov/Blockchain/HLF/fabric-starter-rest:/etc/fabric-starter-rest
     ports:
     - ${API_PORT:-4000}:3000
+    - 3100:3100
 
   www.peer:
     ports:

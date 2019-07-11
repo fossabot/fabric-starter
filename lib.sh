@@ -190,7 +190,7 @@ function joinChannel() {
 
     echo "Join $ORG to channel $channel"
     fetchChannelConfigBlock $channel "0"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer channel join -b crypto-config/configtx/$channel.pb"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT:-7051} peer channel join -b crypto-config/configtx/$channel.pb"
 }
 
 function updateAnchorPeers() {
@@ -206,14 +206,14 @@ function installChaincode() {
     chaincodeVersion=${4:-1.0}
 
     echo "Install chaincode $chaincodeName  $path $lang $version"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode install -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $lang"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT:-7051} peer chaincode install -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $lang"
 }
 
 function installChaincodePackage() {
     chaincodeName=${1:?Chaincode package must be specified}
 
     echo "Install chaincode package $chaincodeName"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode install $chaincodeName"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT:-7051} peer chaincode install $chaincodeName"
 }
 
 function createChaincodePackage() {
@@ -224,7 +224,7 @@ function createChaincodePackage() {
     chaincodePackageName=${5:?Chaincode PackageName must be specified}
 
     echo "Packaging chaincode $chaincodePath to $chaincodeName"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode package -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $chaincodeLang $chaincodePackageName"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT:-7051} peer chaincode package -n $chaincodeName -v $chaincodeVersion -p $chaincodePath -l $chaincodeLang $chaincodePackageName"
 }
 
 function instantiateChaincode() {
@@ -242,7 +242,7 @@ function instantiateChaincode() {
 
     arguments="{\"Args\":$initArguments}"
     echo "Instantiate chaincode $channelName $chaincodeName '$initArguments' $chaincodeVersion $privateCollectionPath $endorsementPolicy"
-    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT} peer chaincode instantiate -n $chaincodeName -v ${chaincodeVersion} -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName ${ORDERER_TLSCA_CERT_OPTS} $privateCollectionParam $endorsementPolicyParam"
+    runCLI "CORE_PEER_ADDRESS=peer0.$ORG.$DOMAIN:${PEER0_PORT:-7051} peer chaincode instantiate -n $chaincodeName -v ${chaincodeVersion} -c '$arguments' -o orderer.$DOMAIN:7050 -C $channelName ${ORDERER_TLSCA_CERT_OPTS} $privateCollectionParam $endorsementPolicyParam"
 }
 
 

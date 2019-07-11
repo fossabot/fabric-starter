@@ -239,21 +239,6 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/msp:/usr/share/nginx/html/msp
       - ./crypto-config/peerOrganizations/${ORG:-org1}.${DOMAIN:-example.com}/msp/well-known:/usr/share/nginx/html/.well-known
-  backend:
-      container_name: backend.${ORG:-org1}.${DOMAIN:-example.com}
-      image: openjdk:jre-alpine
-      # volumes: 
-      #   - ./backend:/opt/backend #CHANGE ME
-      volumes:
-      - ${WORK_DIR-/home/docker}/backend:/opt/backend
-      links: 
-        - api:api
-      environment:
-        - API_HOST=api
-        - API_PORT=3000
-      command: java -jar /opt/backend/factoring.jar
-      ports: 
-        - 5500:5500
 
 networks:
   default:
