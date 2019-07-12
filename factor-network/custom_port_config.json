@@ -1,5 +1,11 @@
 {
     "org1": {
         "peerAddress": "peer0.org1.example.com:7061"
+    },
+    "mvm": {
+        "peerAddress": "peer0.mvm.example.com:7051"
+    },
+    "alfabank": {
+        "peerAddress": "peer0.alfabank.example.com:7061"
     }
 }
