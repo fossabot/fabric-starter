@@ -38,16 +38,12 @@
 2. Указать адреса других участников сети в списке `/etc/hosts` :
 
 ```
-91.220.181.242 www.mvideo.factoring
-91.220.181.242 peer0.mvideo.factoring
-91.220.181.242 peer1.mvideo.factoring
+91.220.181.242 www.mvm.factoring peer0.mvm.factoring
 
-194.85.99.38 www.factoring
-194.85.99.38 orderer.factoring
+194.85.99.38 www.factoring orderer.factoring
 
-89.175.56.229 www.sbf.factoring
-89.175.56.229 peer0.sbf.factoring
-89.175.56.229 peer1.sbf.factoring
+89.175.56.229 www.sbf.factoring peer0.sbf.factoring
+
 ```
 3. Обеспечить двусторонний сетевой доступ по протоколку TCP и портам 7050, 7051, 80 для указанных в п.2 адресов 
 
@@ -120,7 +116,7 @@ sudo service dnsmasq restart
 
         ./clean.sh
         docker system prune
-        rm -rf crypto-config
+        rm -rf crypto-config/*
         ./clean.sh
 
 Для очистки и развертывания Peer можно использовать готовый скрипт: factor-network/clean-install.sh
@@ -142,12 +138,12 @@ sudo service dnsmasq restart
 7. Установить переменные окружения для развертывания узла и смарт-контрактов
 
        EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
-       EXPORT CHAINCODE_VERSION = #версия смарт-контракта, по умолчанию 1.0, желательно уточнять у владельца канала
-       WORK_DIR = текущая директория
+       EXPORT CHAINCODE_VERSION = 2.42
+       WORK_DIR = `pwd`
 
 8. Выполнить команду
 
-        docker-compose -f docker-compose.yaml -f docker-compose-ports.yaml up -d
+        docker-compose -f docker-compose.yaml -f docker-compose-ports.yaml -f factor-network/factoring.yaml up -d
 
     В результате запуститься и работать следующие контейнеры
     
