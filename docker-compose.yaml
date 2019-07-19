@@ -111,7 +111,7 @@ services:
     - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/crypto/peer/tls/server.key
     - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/crypto/peer/tls/server.crt
     - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/crypto/peer/tls/ca.crt
-    - CORE_CHAINCODE_JAVA_RUNTIME=apolubelov/fabric-scalaenv
+    - CORE_CHAINCODE_JAVA_RUNTIME=enterprisedlt/fabric-jar-env
     - CORE_CHAINCODE_EXECUTETIMEOUT=300s
 
     volumes:
