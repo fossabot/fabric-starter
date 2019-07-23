@@ -1,0 +1,23 @@
+on: '3.7'
+
+services:
+  backend:
+      container_name: backend.${ORG:-org1}.${DOMAIN:-example.com}
+      image: openjdk:jre-alpine
+      volumes:
+      - ./backend:/opt/backend
+      links: 
+        - api:api
+      environment:
+        - API_HOST=api
+        - API_PORT=3100
+      command: java -jar /opt/backend/factoring.jar
+      ports: 
+        - 5500:5500
+  api:
+    image: ${DOCKER_REGISTRY:-docker.io}/vapopov/api-patched:1.1
+    volumes:
+      - ./factor-network:/etc/factor-network
+    environment:
+      - CUSTOM_PORT_CONFIG #/etc/factor-network/custom_port_config.json
+      

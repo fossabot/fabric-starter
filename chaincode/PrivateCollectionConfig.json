@@ -1,7 +1,7 @@
 [
   {
-    "name": "org1-org2",
-    "policy": "OR('org1.member', 'org2.member')",
+    "name": "alfa-mvm",
+    "policy": "OR('alfa.member', 'mvm.member')",
     "requiredPeerCount": 0,
     "maxPeerCount": 3,
     "blockToLive": 1000000
