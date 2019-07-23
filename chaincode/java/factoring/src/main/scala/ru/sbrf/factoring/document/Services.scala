@@ -1,17 +1,14 @@
 package ru.sbrf.factoring.document
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, ZoneId}
-import java.util
+import java.time.{LocalDateTime, ZoneId, ZoneOffset}
 
 import com.github.apolubelov.fabric.contract.annotation.ContractOperation
 import com.github.apolubelov.fabric.contract.store.Key
-import com.github.apolubelov.fabric.contract.{ContractCodecs, ContractContext, ContractResponse, Error, Success}
+import com.github.apolubelov.fabric.contract._
 import org.slf4j.{Logger, LoggerFactory}
-import ru.sbrf.factoring.Config
-import ru.sbrf.factoring.assets.{Document, Order, Organization}
-
-import scala.collection.JavaConverters._
+import ru.sbrf.factoring.Config._
+import ru.sbrf.factoring.assets.{LogCounter, Document, LogRow, Order, Organization}
 
 trait Services {
 
@@ -45,10 +42,11 @@ trait Services {
           }
         })
 
-        val orders = distinctDocs.map(getUpdatedOrder(context))
+        val ordersAndStatus = distinctDocs.map(getUpdatedOrder(context))
 
-        for (order <- orders) {
+        for (order <- ordersAndStatus.map(_._1)) {
 
+          //          val (order,status) = t
           val doc = order.documents.head
           val dateSegmentKey: String = calcSegment(doc.documentDate)
 
@@ -57,7 +55,23 @@ trait Services {
           logger.trace(s"documentDate = ${doc.documentDate}, dateSegmentKey = $dateSegmentKey")
           context.privateStore(collectionId).put[Order](key, order)
         }
-        orders.toArray
+
+        // Making a row
+        val txLocalTime = LocalDateTime.now().toEpochSecond(ZoneOffset.ofHours(3))
+        val result: LogRow = ordersAndStatus // We have a list like ( ( Order1, updated) , (Order2, created), (Order3, updated) )
+          .groupBy(t => t._2) // => ( created -> (Order2), updated -> (Order1, Order3)
+          .mapValues(_.size) // =>  (created -> 1, updated -> 2)
+          .map(t => LogRow(context.clientIdentity.mspId, txLocalTime, t._1, t._2))
+          .head
+
+
+        val curVal = LogCounter.getCurrent(context, collectionId)
+
+
+        context.privateStore(collectionId).put(LOG_COUNTER_KEY, LogCounter(curVal.height + 1))
+        context.privateStore(collectionId).put[LogRow](curVal.height.toString, result)
+
+        Success(result)
       }
 
 
@@ -74,7 +88,7 @@ trait Services {
       .toString
   }
 
-  def getUpdatedOrder(context: ContractContext)(incomingDoc: Document): Order = {
+  def getUpdatedOrder(context: ContractContext)(incomingDoc: Document): (Order, Int) = {
 
     val txAuthor = context.clientIdentity.mspId
     val buyer = context.store.list[Organization].filter(_.value.role == "Buyer")
@@ -85,7 +99,7 @@ trait Services {
     /*No one except buyer can submit a receipt*/
     val isBuyer = txAuthor == buyer.head.value.mspId
     /*Buyer can post both receipts and invoices*/
-    val documentType = if (isBuyer) Config.RECEIPT else Config.INVOICE
+    val documentType = if (isBuyer) RECEIPT else INVOICE
 
     logger.info(s"Got doc for OrderId: ${incomingDoc.orderId} with type: $documentType")
     val doc = incomingDoc.copy(documentType = documentType, created = context.lowLevelApi.getTxTimestamp.toEpochMilli)
@@ -103,11 +117,11 @@ trait Services {
       logger.trace(s"${doc.orderId} was found with status received: ${order.received} and confirmed: ${order.confirmed}")
       val documents = doc +: order.documents.filterNot(_.documentType == documentType)
       //also we have to update order status
-      Order(order.id, documents, isBuyer || order.received, !isBuyer || order.confirmed, order.created)
+      (Order(order.id, documents, isBuyer || order.received, !isBuyer || order.confirmed, order.created), ORDER_STATUS_UPDATED)
     } getOrElse {
       logger.trace(s"${doc.orderId} is new!")
       //New Order
-      Order(doc.orderId, Array(doc), isBuyer, !isBuyer, doc.created)
+      (Order(doc.orderId, Array(doc), isBuyer, !isBuyer, doc.created), ORDER_STATUS_CREATED)
     }
   }
 

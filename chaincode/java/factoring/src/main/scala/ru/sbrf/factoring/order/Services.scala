@@ -4,13 +4,10 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 import com.github.apolubelov.fabric.contract.annotation.ContractOperation
-import com.github.apolubelov.fabric.contract.store.Key
 import com.github.apolubelov.fabric.contract.{ContractContext, ContractResponse, Error, Success}
 import org.slf4j.{Logger, LoggerFactory}
-import ru.sbrf.factoring.Config.PAGE_SIZE
-import ru.sbrf.factoring.assets.Order
-
-import scala.collection.immutable
+import ru.sbrf.factoring.Config._
+import ru.sbrf.factoring.assets.{LogCounter, LogRow, Order}
 
 trait Services {
 
@@ -34,11 +31,25 @@ trait Services {
   }
 
   @ContractOperation
-  def listOrders(context: ContractContext,collectionId:String): ContractResponse = {
+  def listOrders(context: ContractContext, collectionId: String): ContractResponse = {
     val orders: Array[Order] = context.privateStore(collectionId).list[Order]
       .map(_.value) // take only values
       .toArray // use Array, as GSON knows nothing about scala collections
     Success(orders)
+  }
+
+
+  @ContractOperation
+  def getLog(context: ContractContext, collectionId: String, depth: Int): ContractResponse = {
+
+
+    Success {
+      val curCounter = LogCounter.getCurrent(context, collectionId).height
+      (Math.max(curCounter - depth, 0) to curCounter).
+        flatMap(key => context.privateStore(collectionId).list[LogRow](key.toString))
+        .map(_.value)
+        .toArray
+    }
   }
 
   //  @ContractOperation
@@ -60,7 +71,7 @@ trait Services {
   //  }
 
   @ContractOperation
-  def listOrdersWithParams(context: ContractContext, collectionId:String, queryParams: OrdersQueryParams): ContractResponse = {
+  def listOrdersWithParams(context: ContractContext, collectionId: String, queryParams: OrdersQueryParams): ContractResponse = {
 
 
     //    def checkBoundaries(o: Order): Boolean = {
@@ -82,7 +93,7 @@ trait Services {
     //      .map(_.value) // take only values
     //      .filter(checkBoundaries)
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    val keys = getDateKeys(queryParams)
+    val keys: List[String] = getDateKeys(queryParams)
     logger.trace(s"keys:$keys")
     keys foreach logger.trace
     val ordersFiltered = keys
@@ -116,7 +127,7 @@ trait Services {
   //  def updateSingleOrder(context: ContractContext, document: Document): ContractResponse = {
   //
   //    updatedOrder(context)(document) map { order =>
-//        val primaryKey = context.lowLevelApi.createCompositeKey("ContractOrder", order.contractID, order.id)
+  //        val primaryKey = context.lowLevelApi.createCompositeKey("ContractOrder", order.contractID, order.id)
   //      context.store.put[Order](primaryKey.toString, order)
   //      Success(order.id)
   //    } getOrElse Error(s"contract ${document.contractID} not found")
