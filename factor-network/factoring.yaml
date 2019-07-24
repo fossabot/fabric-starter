@@ -5,7 +5,7 @@ services:
       container_name: backend.${ORG:-org1}.${DOMAIN:-example.com}
       image: openjdk:jre-alpine
       volumes:
-      - ./backend:/opt/backend
+      - ${WORK_DIR}/backend:/opt/backend
       links: 
         - api:api
       environment:
