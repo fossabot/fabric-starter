@@ -146,3 +146,8 @@ services:
       - ./crypto-config/ordererOrganizations/${DOMAIN:-example.com}/msp/well-known:/usr/share/nginx/html/.well-known
     depends_on:
     - post-install
+
+networks:
+  default:
+    external:
+      name: fabric-starter_default
