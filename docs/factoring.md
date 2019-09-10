@@ -46,9 +46,11 @@
 
 217.12.97.251 www.alfa.factoring peer0.alfa.factoring
 ```
+
 3. Обеспечить двусторонний сетевой доступ по протоколку TCP и портам 7050, 7051, 80 для указанных в п.2 адресов 
 
 4. Настроить DNS для контейнеров:
+
 ```bash
 sudo apt install dnsmasq
 ```
@@ -60,7 +62,8 @@ systemctl status dnsmasq
 ```
 
 Найти адрес шлюза, который предоставляет Docker для внутренней подсети
-```
+
+```bash
 ip addr | grep docker0
 ```
 
@@ -91,7 +94,7 @@ sudo service docker restart
 
 Создать конфигурационный файл для bridge сети
 
-```
+```bash
 sudo mkdir -p /etc/NetworkManager/dnsmasq.d
 sudo nano /etc/NetworkManager/dnsmasq.d/docker-bridge.conf
 ```
@@ -104,8 +107,8 @@ listen-address=172.17.0.1
 
 Перезапустить службу:
 
-```
-sudo service dnsmasq restart    
+```bash
+sudo service dnsmasq restart
 ```
 
 #### Развертывание контейнеров типовой конфигурации
@@ -115,33 +118,47 @@ sudo service dnsmasq restart
 3. Перейти в созданную в результате клонирования папку
 4. Установить переменные окружения для развертывания узла и смарт-контрактов
 
-       EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
-       EXPORT CHAINCODE_VERSION = 2.44
-       EXPORT WORK_DIR = `pwd`
-       EXPORT DOMAIN="factoring"
+```bash
+EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
+EXPORT CHAINCODE_VERSION = 2.44
+EXPORT WORK_DIR = `pwd`
+EXPORT DOMAIN="factoring"
+```
 
 5. Выполнить команду
 
-        docker-compose -f docker-compose.yaml -f docker-compose-ports.yaml -f factor-network/factoring.yaml up -d
+```bash
+docker-compose -f docker-compose.yaml -f docker-compose-ports.yaml -f factor-network/factoring.yaml up -d
+```
 
-    В результате запуститься и работать следующие контейнеры
-    
-    * peer0.`org`.`domain` - Узел участника
-    * peer1.`org`.`domain` - Узел участника
-    * api.`org`.`domain` - API сервер
-    * ca.`org`.`domain` - Удостоверяющий центр
-    * cli.`org`.`domain` - Сервер для выполнения служебных команд
-    * www.`org`.`domain` - Сервер Nginx
-    * backend.`org`.`domain` - Сервисный слой и веб-приложение
+В результате запуститься и работать следующие контейнеры
+
+* peer0.`${ORG}`.factoring - Узел участника
+* peer1.`${ORG}`.factoring - Узел участника
+* api.`${ORG}`.factoring - API сервер
+* ca.`${ORG}`.factoring - Удостоверяющий центр
+* cli.`${ORG}`.factoring - Сервер для выполнения служебных команд
+* www.`${ORG}`.factoring - Сервер Nginx
+* backend.`${ORG}`.factoring - Сервисный слой и веб-приложение
 
 6. Установить смарт-контракт:
 
-        ```bash
-        export CHAINCODE_VERSION=2.44
-        ./chaincode-install-package.sh /opt/chaincode/factor_scala_${CHAINCODE_VERSION}
+```bash
+export CHAINCODE_VERSION=2.44
+./chaincode-install-package.sh /opt/chaincode/factor_scala_${CHAINCODE_VERSION}
 
-        ```
+```
+
+7. Проверить сетевой доступ до хостов в `/etc/hosts` из контейнера cli.`${ORG}`.factoring:
+```
+docker exec cli.`${ORG}`.factoring ping orderer.factoring
+docker exec cli.`${ORG}`.factoring ping peer0.mvm.factoring
+```
+
+8. Сообщить участникам Ordering Service об успешном выполнении
+
 ### Присоединение к консорциуму и создание каналов
+
 **Только для участников ordering-serice!**
 
 1. После настройки и проверки сетевого соединения, необходимо обеспечить включение организации (т.е. ее публичного ключа) в список доверенных участников. Данная команда должна быть выполнена на `Orderer`:
@@ -169,10 +186,6 @@ sudo service dnsmasq restart
 
 * `$ORG` - название новой организации, указанное при развертывании узлов
 * `$CHANNEL_NAME` - название канала, которое можно получить от его создателя
-
-### Развертывание смарт-контрактов
-
-
 
 ### Проверить работоспособность приложения
 Зайти на страницу http://hostname:5500/login
