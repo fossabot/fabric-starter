@@ -113,36 +113,14 @@ sudo service dnsmasq restart
 1. Войти в консоль сервера
 2. Клонировать этот репозиторий
 3. Перейти в созданную в результате клонирования папку
-4. **Важно!** В случае обновления с предыдущей версии необходимо выполнить очистку системы:
-
-        ./clean.sh
-        docker system prune
-        rm -rf crypto-config/*
-        ./clean.sh
-
-Для очистки и развертывания Peer можно использовать готовый скрипт: factor-network/clean-install.sh
-
-5. Задать переменную окружения с названием Сети:
-
-        EXPORT DOMAIN="factoring"
-
-6. **Только для участников ordering-serice!**  Выполнить команду для развертывания прикладного ПО для упорядочивающего узла (`Orderer`):
-
-        docker-compose -f docker-compose-orderer.yaml -f docker-compose-orderer-ports.yaml up -d
-
-    В результате запуститься и работать следующие контейнеры:
-
-    * orderer.`org`.`domain` - упорядочивающий узел
-    * www.`org`.`domain` - nginx для раздачи сертификатов
-    * cli.`org`.`domain` - среда исполнения служебных команд
-
-7. Установить переменные окружения для развертывания узла и смарт-контрактов
+4. Установить переменные окружения для развертывания узла и смарт-контрактов
 
        EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
        EXPORT CHAINCODE_VERSION = 2.44
-       WORK_DIR = `pwd`
+       EXPORT WORK_DIR = `pwd`
+       EXPORT DOMAIN="factoring"
 
-8. Выполнить команду
+5. Выполнить команду
 
         docker-compose -f docker-compose.yaml -f docker-compose-ports.yaml -f factor-network/factoring.yaml up -d
 
@@ -155,7 +133,14 @@ sudo service dnsmasq restart
     * cli.`org`.`domain` - Сервер для выполнения служебных команд
     * www.`org`.`domain` - Сервер Nginx
     * backend.`org`.`domain` - Сервисный слой и веб-приложение
-    
+
+6. Установить смарт-контракт:
+
+        ```bash
+        export CHAINCODE_VERSION=2.44
+        ./chaincode-install-package.sh /opt/chaincode/factor_scala_${CHAINCODE_VERSION}
+
+        ```
 ### Присоединение к консорциуму и создание каналов
 **Только для участников ordering-serice!**
 
@@ -187,11 +172,7 @@ sudo service dnsmasq restart
 
 ### Развертывание смарт-контрактов
 
-```bash
-export CHAINCODE_VERSION=2.44
-./chaincode-install-package.sh /opt/chaincode/factor_scala_${CHAINCODE_VERSION}
 
-```
 
 ### Проверить работоспособность приложения
 Зайти на страницу http://hostname:5500/login
