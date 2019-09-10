@@ -44,6 +44,7 @@
 
 89.175.56.229 www.sbf.factoring peer0.sbf.factoring
 
+217.12.97.251 www.alfa.factoring peer0.alfa.factoring
 ```
 3. Обеспечить двусторонний сетевой доступ по протоколку TCP и портам 7050, 7051, 80 для указанных в п.2 адресов 
 
