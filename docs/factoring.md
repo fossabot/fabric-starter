@@ -139,7 +139,7 @@ sudo service dnsmasq restart
 7. Установить переменные окружения для развертывания узла и смарт-контрактов
 
        EXPORT ORG="" #краткое название организации латинскими буквами, без дефисов
-       EXPORT CHAINCODE_VERSION = 2.42
+       EXPORT CHAINCODE_VERSION = 2.44
        WORK_DIR = `pwd`
 
 8. Выполнить команду
@@ -185,15 +185,11 @@ sudo service dnsmasq restart
 * `$ORG` - название новой организации, указанное при развертывании узлов
 * `$CHANNEL_NAME` - название канала, которое можно получить от его создателя
 
-### Развертывание веб-приложения:
-Для удобства работы со смарт-контрактом Факторинг было разработано небольшое приложение, обеспечивающее формирование отчетности и работу с файлами. Поскольку, оно не относится к типовой конфигурации, то инструкция по развертыванию вынесена в отдельный раздел, а установка выполняется отдельной командой
-
-        docker-compose -f factor-network/docker/backend-compose.yaml up -d
 ### Развертывание смарт-контрактов
 
 ```bash
-export CHAINCODE_VERSION=1.0
-./chaincode-install.sh factor_scala $CHAINCODE_VERSION /opt/chaincode/java/factoring  java
+export CHAINCODE_VERSION=2.44
+./chaincode-install-package.sh /opt/chaincode/factor_scala_${CHAINCODE_VERSION}
 
 ```
 
