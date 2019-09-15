@@ -77,8 +77,13 @@ trait Services {
 
   }
 
+  @ContractOperation
+  def getLogs(context: ContractContext, collectionId: String): ContractResponse = {
+    Success(context.privateStore(collectionId).list[LogRow])
+  }
 
-  def calcSegment(documentDate: String) = {
+
+  private def calcSegment(documentDate: String) = {
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm")
     LocalDateTime.parse(
       documentDate + " 00:00", dateFormatter)
