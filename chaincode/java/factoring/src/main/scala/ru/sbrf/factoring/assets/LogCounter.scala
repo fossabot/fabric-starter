@@ -13,9 +13,7 @@ object LogCounter {
 
     context
       .privateStore(collectionId)
-      .list[LogCounter](Config.LOG_COUNTER_KEY)
-      .map(_.value)
-      .headOption getOrElse LogCounter(0)
+      .get[LogCounter](Config.LOG_COUNTER_KEY) getOrElse LogCounter(0)
 
 
   }

@@ -79,7 +79,10 @@ trait Services {
 
   @ContractOperation
   def getLogs(context: ContractContext, collectionId: String): ContractResponse = {
-    Success(context.privateStore(collectionId).list[LogRow])
+    val result = context.privateStore(collectionId).list[LogRow]
+    val logger: Logger = LoggerFactory.getLogger(this.getClass)
+    logger.error("result = " + result)
+    Success(context.privateStore(collectionId).list[LogRow].toArray)
   }
 
 
