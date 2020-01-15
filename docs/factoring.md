@@ -40,9 +40,9 @@
 ```
 91.220.181.242 www.mvm.factoring peer0.mvm.factoring
 
-194.85.99.38 www.factoring orderer.factoring
+194.85.99.45 www.factoring orderer.factoring
 
-89.175.56.229 www.sbf.factoring peer0.sbf.factoring
+194.85.99.46 www.sbf.factoring peer0.sbf.factoring
 
 217.12.97.251 www.alfa.factoring peer0.alfa.factoring
 ```
