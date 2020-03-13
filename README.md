@@ -1,4 +1,6 @@
 # Starter Application for Hyperledger Fabric
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdundro%2Ffabric-starter.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdundro%2Ffabric-starter?ref=badge_shield)
+
 
 Create a network to jump start development of your decentralized application on 
 [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric) platform.
@@ -140,3 +142,6 @@ The _`master`_ branch as well as potentially _`feature branches`_ are used for d
     - use _fabric-starter-rest:snapshot-0.2-1.4_
 - snapshot-0.1-1.4
     - start snapshot branching
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdundro%2Ffabric-starter.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdundro%2Ffabric-starter?ref=badge_large)
